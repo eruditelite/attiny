@@ -11,30 +11,39 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 
-#if 0
-//----- READ BYTES -----
-length = 4;			//<<< Number of bytes to read
-if (read(file_i2c, buffer, length) != length)		//read() returns the number of bytes actually read, if it doesn't match then an error occurred (e.g. no response from the device)
+/*
+  ------------------------------------------------------------------------------
+  access_read
+*/
+
+int
+access_read(int fd, void *buffer, int length)
 {
-	//ERROR HANDLING: i2c transaction failed
-	printf("Failed to read from the i2c bus.\n");
-}
-else
-{
-	printf("Data read: %s\n", buffer);
+	if (length != read(fd, buffer, length)) {
+		fprintf(stderr,	"access_read() failed: %s\n", strerror(errno));
+			
+		return -1;
+	}
+
+	return length;
 }
 
-	
-//----- WRITE BYTES -----
-buffer[0] = 0x01;
-buffer[1] = 0x02;
-length = 2;			//<<< Number of bytes to write
-if (write(file_i2c, buffer, length) != length)		//write() returns the number of bytes actually written, if it doesn't match then an error occurred (e.g. no response from the device)
+/*
+  ------------------------------------------------------------------------------
+  access_write
+*/
+
+int
+access_write(int fd, const void *buffer, int length)
 {
-	/* ERROR HANDLING: i2c transaction failed */
-	printf("Failed to write to the i2c bus.\n");
+	if (length != write(fd, buffer, length)) {
+		fprintf(stderr, "access_write() failed: %s\n", strerror(errno));
+
+		return -1;
+	}
+
+	return length;
 }
-#endif
 
 /*
   ------------------------------------------------------------------------------
@@ -45,6 +54,8 @@ int
 main(int argc, char *argv[])
 {
 	int fd;
+	unsigned char buffer[2];
+	int len;
 
 	/* Open the I2C Bus */
 	if (0 > (fd = open("/dev/i2c-1", O_RDWR))) {
@@ -59,40 +70,45 @@ main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	{
-		unsigned char buffer[60];
+	/* Verify the Magic Number */
 
-		/* A Write */
+	buffer[0] = 0xff;
 
-		memset(buffer, 0, sizeof(buffer));
-		buffer[0] = 0x20;
+	if (1 != access_write(fd, buffer, 1)) {
+		fprintf(stderr, "Write Failed\n");
 
-		if (1 != write(fd, buffer, 1)) {
-			printf("Write Failed: %s\n", strerror(errno));
-			close(fd);
-
-			return EXIT_FAILURE;
-		} else {
-			printf("Wrote 0x%02x to 8\n", buffer[0]);
-		}
+		return EXIT_FAILURE;
 	}
 
-	{
-		unsigned char buffer[60];
+	if (2 != access_read(fd, buffer, 2)) {
+		fprintf(stderr, "Read Failed\n");
 
-		/* A Read */
-
-		memset(buffer, 0, sizeof(buffer));
-
-		if (1 != read(fd, buffer, 1)) {
-			printf("Read Failed: %s\n", strerror(errno));
-			close(fd);
-
-			return EXIT_FAILURE;
-		} else {
-			printf("Read 0x%02x from 8\n", buffer[0]);
-		}
+		return EXIT_FAILURE;
 	}
+
+	if ((0xba != buffer[0]) || (0xcd != buffer[1])) {
+		printf("Bad Magic Number!\n");
+
+		return EXIT_FAILURE;
+	}
+
+	/* Get the Program and Version */
+
+	buffer[0] = 0xfe;
+
+	if (1 != access_write(fd, buffer, 1)) {
+		fprintf(stderr, "Write Failed\n");
+
+		return EXIT_FAILURE;
+	}
+
+	if(2 != access_read(fd, buffer, 2)) {
+		fprintf(stderr, "Write Failed\n");
+
+		return EXIT_FAILURE;
+	}
+
+	printf("Project: 0x%02x Version: 0x%02x\n", buffer[0], buffer[1]);
 
 	close(fd);
 
