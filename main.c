@@ -39,13 +39,24 @@ my_data_callback(uint8_t input_buffer_length,
 {
 	int i;
 
-	PORTB ^= (1 << PORTB4);
-
 	for (i = 0; i < input_buffer_length; ++i) {
-		output_buffer[i] = input_buffer[i];
+		switch (input_buffer[i]) {
+		case 0xff:
+			/* Magic */
+			output_buffer[0] = 0xba;
+			output_buffer[1] = 0xcd;
+			*output_buffer_length = 2;
+			break;
+		case 0xfe:
+			/* Project and Version */
+			output_buffer[0] = 0x01; /* project */
+			output_buffer[1] = 0x01; /* version */
+			*output_buffer_length = 2;
+			break;
+		default:
+			break;
+		}
 	}
-
-	*output_buffer_length = input_buffer_length;
 
 	return;
 }
@@ -53,44 +64,17 @@ my_data_callback(uint8_t input_buffer_length,
 void
 my_idle_callback(void)
 {
-	PORTB ^= (1 << PORTB3);
-
 	return;
 }
 
 int
 main(void)
 {
-	/* Set pins 2 and 3 to output. */
-	DDRB |= (1 << PORTB3) | (1 << PORTB4);
-
-	/* Make pins low to start. */
-	PORTB &= ~((1 << PORTB3) | (1 << PORTB4));
-
-	/* blink 3 times */
-	PORTB ^= (1 << PORTB3);
-	_delay_ms(100);
-	PORTB ^= (1 << PORTB3);
-	_delay_ms(100);
-	PORTB ^= (1 << PORTB3);
-	_delay_ms(100);
-	PORTB ^= (1 << PORTB3);
-	_delay_ms(100);
-	PORTB ^= (1 << PORTB3);
-	_delay_ms(100);
-	PORTB ^= (1 << PORTB3);
-
 	/* Initialize USITWISLAVE */
 	usi_twi_slave(I2C_ADDRESS,
 		      0,
 		      my_data_callback,
 		      my_idle_callback);
-
-	/* blink forever */
-	for (;;) {
-		_delay_ms(1000);
-		PORTB ^= (1 << PORTB3);
-	}
 
 	return 0;
 }
