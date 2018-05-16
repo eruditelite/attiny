@@ -55,7 +55,6 @@ main(int argc, char *argv[])
 {
 	int fd;
 	unsigned char buffer[2];
-	int len;
 
 	/* Open the I2C Bus */
 	if (0 > (fd = open("/dev/i2c-1", O_RDWR))) {

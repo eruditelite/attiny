@@ -9,10 +9,10 @@
 MCU = attiny85
 AVRDUDEMCU = t85
 USITWISLAVE = ../usitwislave
-CC = avr-gcc
-CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(USITWISLAVE)
-SIM_CFLAGS = -g -Os -Wall -mcall-prologues -mmcu=$(MCU) -DSIM -I~/apps/simavr
-OBJ2HEX = avr-objcopy
+AVR_CC = avr-gcc
+AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(USITWISLAVE)
+AVR_SIM_CFLAGS = $(AVR_CFLAGS) -g -DSIM -I~/apps/simavr
+AVR_OBJ2HEX = avr-objcopy
 RESETPIN = 22
 AVRDUDE = avrdude
 AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P /dev/spidev0.0 -c linuxspi -b 10000
@@ -20,25 +20,29 @@ AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P /dev/spidev0.0 -c linuxspi -b 10000
 all : attiny85_wr attiny85_wr.hex access
 
 access : access.c
-	gcc -o access access.c
+	gcc -O3 -Wall -o $@ $<
 
 attiny85_wr.hex : attiny85_wr
-	$(OBJ2HEX) -R .eeprom -O ihex $< $@
+	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
 
-attiny85_wr : main.o usitwislave.o
-	$(CC) $(CFLAGS) -o $@ $^
+attiny85_wr : main.o callbacks.o usitwislave.o
+	$(AVR_CC) $(AVR_CFLAGS) -o $@ $^
 
-main.o : main.c \
-	$(USITWISLAVE)/usitwislave_devices.h $(USITWISLAVE)/usitwislave.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+usitwislave.o : $(USITWISLAVE)/usitwislave.c
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-usitwislave.o : $(USITWISLAVE)/usitwislave.c \
-	$(USITWISLAVE)/usitwislave_devices.h $(USITWISLAVE)/usitwislave.h
-	$(CC) $(CFLAGS) -c -o $@ $<
+main.o : main.c
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-cscope.files :
-	$(CC) $(CFLAGS) -M main.c | sed -e 's/[\\ ]/\n/g' | sed -e '/^$/d' -e '/\.o:[ \t]*$/d' >cscope.files
-	$(CC) $(CFLAGS) -M $(USITWISLAVE)/usitwislave.c | sed -e 's/[\\ ]/\n/g' | sed -e '/^$/d' -e '/\.o:[ \t]*$/d' >>cscope.files
+callbacks.o : callbacks.c
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
+
+cscope : main.c callbacks.c $(USITWISLAVE)/usitwislave.c
+	@$(AVR_CC) $(AVR_CFLAGS) -M $^ \
+		| sed -e 's/[\\ ]/\n/g' \
+		| sed -e '/^$$/d' -e '/\.o:[ \t]*$$/d' \
+		| sort -u >cscope.files
+	@cscope -b
 
 install : attiny85_wr.hex
 	sudo gpio -g mode $(RESETPIN) out
@@ -52,4 +56,4 @@ reset :
 	sudo gpio -g write $(RESETPIN) 1
 
 clean :
-	rm -f *.hex *.o *.vcd attiny85_wr cscope.* access
+	rm -f *.hex *.d *.o *.vcd attiny85_wr cscope.* access
