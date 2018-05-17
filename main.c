@@ -36,11 +36,7 @@ main(void)
 	  Initialize the System
 	*/
 
- 	/* Set pins 2 and 3 to output. */
-	DDRB |= ((1 << PORTB3) | (1 << PORTB4));
-
-	/* Make both pins low to start. */
-	PORTB |= ~((1 << PORTB3) | (1 << PORTB4));
+	initialize();
 
 	/* Start counting time... */
 #ifdef INCLUDE_TICKS

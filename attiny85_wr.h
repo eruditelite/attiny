@@ -42,6 +42,7 @@ void time_delay_ms(unsigned long);
   Work Support
 */
 
+void initialize(void);
 void work(void);
 
 #endif	/* ATTINY85_WR_H_ */

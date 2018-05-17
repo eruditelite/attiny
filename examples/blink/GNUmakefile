@@ -8,10 +8,11 @@
 
 MCU = attiny85
 AVRDUDEMCU = t85
-USITWI = ../usitwislave
-ATTINY = .
+USITWI = ../../../usitwislave
+ATTINY = ../..
 AVR_CC = avr-gcc
-AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY) -I$(USITWI)
+AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) \
+	-I$(ATTINY) -I$(USITWI)
 AVR_SIM_CFLAGS = $(AVR_CFLAGS) -g -DSIM -I~/apps/simavr
 AVR_OBJ2HEX = avr-objcopy
 RESETPIN = 22
@@ -41,11 +42,11 @@ callbacks.o : $(ATTINY)/callbacks.c
 time.o : $(ATTINY)/time.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-work.o : $(ATTINY)/work.c
+work.o : work.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
 cscope : $(ATTINY)/main.c $(ATTINY)/callbacks.c \
-	$(ATTINY)/time.c $(ATTINY)/work.c \
+	$(ATTINY)/time.c work.c \
 	$(USITWI)/usitwislave.c
 	@$(AVR_CC) $(AVR_CFLAGS) -M $^ \
 		| sed -e 's/[\\ ]/\n/g' \

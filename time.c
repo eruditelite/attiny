@@ -40,7 +40,6 @@ time_delay_ms(unsigned long ms)
 
 ISR(WDT_vect)
 {
-	PORTB ^= (1 << PORTB3);
 	++ticks;
 }
 

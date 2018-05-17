@@ -15,6 +15,12 @@
 void
 initialize(void)
 {
+ 	/* Set pins 2 and 3 to output. */
+	DDRB |= ((1 << PORTB3) | (1 << PORTB4));
+
+	/* Make both pins low to start. */
+	PORTB |= ~((1 << PORTB3) | (1 << PORTB4));
+
 	return;
 }
 
@@ -26,8 +32,8 @@ initialize(void)
 void
 work(void)
 {
-	for (;;)
-		usi_twi_check();
-
-	return;
+	for (;;) {
+		PORTB ^= (1 << PORTB4);
+		time_delay_ms(1000);
+	}
 }
