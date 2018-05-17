@@ -32,22 +32,26 @@ const struct avr_mmcu_vcd_trace_t _mytrace[] _MMCU_ = {
 int
 main(void)
 {
+	/*
+	  Initialize the System
+	*/
+
+ 	/* Set pins 2 and 3 to output. */
+	DDRB |= ((1 << PORTB3) | (1 << PORTB4));
+
+	/* Make both pins low to start. */
+	PORTB |= ~((1 << PORTB3) | (1 << PORTB4));
+
 	/* Start counting time... */
+#ifdef INCLUDE_TICKS
 	time_init();
+#endif	/* INCLUDE_TICKS */
 
 	/* Initialize USITWISLAVE */
-	usi_twi_slave(I2C_ADDRESS, 0, data_callback, idle_callback);
+	usi_twi_slave(I2C_ADDRESS, i2c_callback);
 
- 	/* Set pin 2 to output. */
-	DDRB |= (1 << PORTB4);
-
-	/* Make pin low to start. */
-	PORTB &= ~(1 << PORTB4);
-
-	for (;;) {
-		PORTB ^= (1 << PORTB4);
-		_delay_ms(500);
-	}
+	/* On to the work loop... */
+	work();
 
 	return 0;
 }

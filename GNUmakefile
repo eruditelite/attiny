@@ -25,7 +25,7 @@ access : access.c
 attiny85_wr.hex : attiny85_wr
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
 
-attiny85_wr : main.o callbacks.o time.o usitwislave.o
+attiny85_wr : main.o callbacks.o time.o work.o usitwislave.o
 	$(AVR_CC) $(AVR_CFLAGS) -o $@ $^
 
 usitwislave.o : $(USITWISLAVE)/usitwislave.c
@@ -38,6 +38,9 @@ callbacks.o : callbacks.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
 time.o : time.c
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
+
+work.o : work.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
 cscope : main.c callbacks.c time.c $(USITWISLAVE)/usitwislave.c

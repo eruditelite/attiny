@@ -10,14 +10,14 @@
 
 /*
   ------------------------------------------------------------------------------
-  data_callback
+  i2c_callback
 */
 
 void
-data_callback(uint8_t input_buffer_length,
-	      const uint8_t *input_buffer,
-	      uint8_t *output_buffer_length,
-	      uint8_t *output_buffer)
+i2c_callback(uint8_t input_buffer_length,
+	     const uint8_t *input_buffer,
+	     uint8_t *output_buffer_length,
+	     uint8_t *output_buffer)
 {
 	int i;
 
@@ -39,41 +39,6 @@ data_callback(uint8_t input_buffer_length,
 			break;
 		}
 	}
-
-	return;
-}
-
-/*
-  ------------------------------------------------------------------------------
-  idle_callback
-*/
-
-void
-idle_callback(void)
-{
-#if 0
-	int i;
-	int ticks;
-
- 	/* Set pin 2 to output. */
-	DDRB |= (1 << PORTB3);
-
-	/* Make pin low to start. */
-	PORTB &= ~(1 << PORTB3);
-	_delay_ms(1);
-
-	/* Output a burst of square waves containing the number of ticks. */
-	ticks = time_get_ticks();
-
-	for (i = 0 ; i < ticks; ++i) {
-		PORTB ^= (1 << PORTB3);
-		_delay_us(5);
-		PORTB ^= (1 << PORTB3);
-		_delay_us(5);
-	}
-
-	_delay_ms(1);
-#endif
 
 	return;
 }
