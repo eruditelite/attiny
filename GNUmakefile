@@ -25,7 +25,7 @@ access : access.c
 attiny85_wr.hex : attiny85_wr
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
 
-attiny85_wr : main.o callbacks.o usitwislave.o
+attiny85_wr : main.o callbacks.o time.o usitwislave.o
 	$(AVR_CC) $(AVR_CFLAGS) -o $@ $^
 
 usitwislave.o : $(USITWISLAVE)/usitwislave.c
@@ -37,7 +37,10 @@ main.o : main.c
 callbacks.o : callbacks.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-cscope : main.c callbacks.c $(USITWISLAVE)/usitwislave.c
+time.o : time.c
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
+
+cscope : main.c callbacks.c time.c $(USITWISLAVE)/usitwislave.c
 	@$(AVR_CC) $(AVR_CFLAGS) -M $^ \
 		| sed -e 's/[\\ ]/\n/g' \
 		| sed -e '/^$$/d' -e '/\.o:[ \t]*$$/d' \
@@ -56,4 +59,4 @@ reset :
 	sudo gpio -g write $(RESETPIN) 1
 
 clean :
-	rm -f *.hex *.d *.o *.vcd attiny85_wr cscope.* access
+	rm -f *~ *.hex *.d *.o *.vcd attiny85_wr cscope.* access

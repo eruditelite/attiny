@@ -2,8 +2,11 @@
   callbacks.c
 */
 
-#include <usitwislave.h>
 #include "attiny85_wr.h"
+
+#include <util/delay.h>
+#include <avr/io.h>
+#include <usitwislave.h>
 
 /*
   ------------------------------------------------------------------------------
@@ -40,8 +43,37 @@ data_callback(uint8_t input_buffer_length,
 	return;
 }
 
+/*
+  ------------------------------------------------------------------------------
+  idle_callback
+*/
+
 void
 idle_callback(void)
 {
+#if 0
+	int i;
+	int ticks;
+
+ 	/* Set pin 2 to output. */
+	DDRB |= (1 << PORTB3);
+
+	/* Make pin low to start. */
+	PORTB &= ~(1 << PORTB3);
+	_delay_ms(1);
+
+	/* Output a burst of square waves containing the number of ticks. */
+	ticks = time_get_ticks();
+
+	for (i = 0 ; i < ticks; ++i) {
+		PORTB ^= (1 << PORTB3);
+		_delay_us(5);
+		PORTB ^= (1 << PORTB3);
+		_delay_us(5);
+	}
+
+	_delay_ms(1);
+#endif
+
 	return;
 }
