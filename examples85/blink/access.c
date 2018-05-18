@@ -151,6 +151,13 @@ main(int argc, char *argv[])
 	unsigned short project;
 	unsigned short version;
 	unsigned int delay;
+	int write = 0;
+
+	if (2 == argc) {
+		write = 1;
+
+		delay = (unsigned int)strtoul(argv[1], NULL, 0);
+	}
 
 	/* Open the I2C Bus */
 	if (0 > (fd = open("/dev/i2c-1", O_RDWR))) {
@@ -183,7 +190,18 @@ main(int argc, char *argv[])
 
 	printf("Project: 0x%04x Version: 0x%04x\n", project, version);
 
-	/* Display the current delay and set it to half. */
+	/* Write a new delay value if indicated... */
+
+	if (0 != write) {
+		if (EXIT_SUCCESS != rwrite(fd, trdelay,
+					   (unsigned char *)&delay)) {
+			fprintf(stderr, "Write Failed\n");
+
+			return EXIT_FAILURE;
+		}
+	}
+
+	/* Display the current delay value. */
 
 	if (EXIT_SUCCESS != rread(fd, trdelay, &delay)) {
 		fprintf(stderr, "Read Failed\n");
@@ -192,14 +210,6 @@ main(int argc, char *argv[])
 	}
 
 	printf("Delay: %u\n", delay);
-
-	delay = delay / 2;
-
-	if (EXIT_SUCCESS != rwrite(fd, trdelay, (unsigned char *)&delay)) {
-		fprintf(stderr, "Write Failed\n");
-
-		return EXIT_FAILURE;
-	}
 
 	close(fd);
 

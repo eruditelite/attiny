@@ -188,10 +188,10 @@ void
 initialize(void)
 {
  	/* Set pins 2 and 3 to output. */
-	DDRB |= ((1 << PORTB3) | (1 << PORTB4));
+	DDRB |= (_BV(PB3) | _BV(PB4));
 
 	/* Make both pins low to start. */
-	PORTB |= ~((1 << PORTB3) | (1 << PORTB4));
+	PORTB |= ~(_BV(PB3) | _BV(PB4));
 
 	return;
 }
@@ -207,7 +207,7 @@ work(void)
 	delay = 1000;
 	
 	for (;;) {
-		PORTB ^= (1 << PORTB4);
+		PORTB ^= _BV(PB4);
 		time_delay_ms(delay);
 	}
 
