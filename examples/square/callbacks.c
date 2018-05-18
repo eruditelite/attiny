@@ -48,6 +48,27 @@ i2c_callback(uint8_t input_buffer_length,
 		case 0x83:
 			PLLCSR = input_buffer[1];
 			break;
+		case 0x04:
+			output_buffer[0] = TCCR1;
+			*output_buffer_length = 1;
+			break;
+		case 0x84:
+			TCCR1 = input_buffer[1];
+			break;
+		case 0x05:
+			output_buffer[0] = OCR1A;
+			*output_buffer_length = 1;
+			break;
+		case 0x85:
+			OCR1A = input_buffer[1];
+			break;
+		case 0x06:
+			output_buffer[0] = OCR1C;
+			*output_buffer_length = 1;
+			break;
+		case 0x86:
+			OCR1C = input_buffer[1];
+			break;
 		default:
 			break;
 		}

@@ -40,14 +40,20 @@ enum trname {
 	trmagic = 0,
 	trproject = 1,
 	trversion = 2,
-	trpllcsr = 3
+	trpllcsr = 3,
+	trtccr1 = 4,
+	trocr1a = 5,
+	trocr1c = 6
 };
 
 struct tr trs[] = {
 	{"magic", 0, 2, 1},
 	{"project", 1, 2, 1},
 	{"version", 2, 2, 1},
-	{"pllcsr", 3, 1, 0}
+	{"pllcsr", 3, 1, 0},
+	{"tccr1", 4, 1, 0},
+	{"ocr1a", 5, 1, 0},
+	{"ocr1c", 6, 1, 0}
 };
 
 /*
@@ -151,6 +157,25 @@ main(int argc, char *argv[])
 	unsigned short project;
 	unsigned short version;
 	unsigned char value;
+	unsigned char pllcsr;
+	unsigned char tccr1;
+	unsigned char ocr1a;
+	unsigned char ocr1c;
+	int write = 0;
+
+	if (5 == argc) {
+		write = 1;
+
+		pllcsr = (unsigned char)strtoul(argv[1], NULL, 0);
+		tccr1 = (unsigned char)strtoul(argv[2], NULL, 0);
+		ocr1a = (unsigned char)strtoul(argv[3], NULL, 0);
+		ocr1c = (unsigned char)strtoul(argv[4], NULL, 0);
+
+		printf("\n-- Writing --\n"
+		       "PLLCSR:0x%02x TCCR1:0x%02x "
+		       "OCR1A:0x%02x/%u OCR1C:0x%02x/%u\n\n",
+		       pllcsr, tccr1, ocr1a, ocr1a, ocr1c, ocr1c);
+	}
 
 	/* Open the I2C Bus */
 	if (0 > (fd = open("/dev/i2c-1", O_RDWR))) {
@@ -183,27 +208,74 @@ main(int argc, char *argv[])
 
 	printf("Project: 0x%04x Version: 0x%04x\n", project, version);
 
-	/* Read PLLCSR and the change it... */
+	/* Change Things... */
 
-	if (EXIT_SUCCESS != rread(fd, trpllcsr, &value)) {
+	if (0 != write) {
+		if (EXIT_SUCCESS !=
+		    rwrite(fd, trpllcsr, (unsigned char *)&pllcsr)) {
+			fprintf(stderr, "Write Failed\n");
+			return EXIT_FAILURE;
+		}
+
+		if (EXIT_SUCCESS !=
+		    rwrite(fd, trtccr1, (unsigned char *)&tccr1)) {
+			fprintf(stderr, "Write Failed\n");
+
+			return EXIT_FAILURE;
+		}
+
+		if (EXIT_SUCCESS !=
+		    rwrite(fd, trocr1a, (unsigned char *)&ocr1a)) {
+			fprintf(stderr, "Write Failed\n");
+
+			return EXIT_FAILURE;
+		}
+
+		if (EXIT_SUCCESS !=
+		    rwrite(fd, trocr1c, (unsigned char *)&ocr1c)) {
+			fprintf(stderr, "Write Failed\n");
+
+			return EXIT_FAILURE;
+		}
+	}
+
+	/* Read PLLCSR */
+
+	if (EXIT_SUCCESS != rread(fd, trpllcsr, &pllcsr)) {
 		fprintf(stderr, "Read Failed\n");
 
 		return EXIT_FAILURE;
 	}
 
-	printf("PLLCSR: %d\n", value);
+	printf("PLLCSR: 0x%02x\n", pllcsr);
 
-	if (7 == value)
-		value =	3;
-	else
-		value = 7;
+	/* Read TCCR1 */
 
-	if (EXIT_SUCCESS !=
-	    rwrite(fd, trpllcsr, (unsigned char *)&value)) {
-		fprintf(stderr, "Write Failed\n");
+	if (EXIT_SUCCESS != rread(fd, trtccr1, &value)) {
+		fprintf(stderr, "Read Failed\n");
 
 		return EXIT_FAILURE;
 	}
+
+	printf(" TCCR1: 0x%02x\n", value);
+
+	/* Read OCR1* */
+
+	if (EXIT_SUCCESS != rread(fd, trocr1a, &value)) {
+		fprintf(stderr, "Read Failed\n");
+
+		return EXIT_FAILURE;
+	}
+
+	printf(" OCR1A: %d\n", value);
+
+	if (EXIT_SUCCESS != rread(fd, trocr1c, &value)) {
+		fprintf(stderr, "Read Failed\n");
+
+		return EXIT_FAILURE;
+	}
+
+	printf(" OCR1C: %d\n", value);
 
 	close(fd);
 
