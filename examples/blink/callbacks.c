@@ -8,6 +8,8 @@
 #include <avr/io.h>
 #include <usitwislave.h>
 
+extern unsigned int delay;
+
 /*
   ------------------------------------------------------------------------------
   i2c_callback
@@ -40,6 +42,24 @@ i2c_callback(uint8_t input_buffer_length,
 			output_buffer[0] = VERSION & 0xff;
 			output_buffer[1] = (VERSION & 0xff00) >> 8;
 			*output_buffer_length = 2;
+			break;
+		case 0x3:
+			/* Get the delay. */
+			output_buffer[0] = delay & 0xff;
+			output_buffer[1] = (delay & 0xff00) >> 8;
+			output_buffer[2] = (delay & 0xff0000) >> 16;
+			output_buffer[3] = (delay & 0xff000000) >> 24;
+			*output_buffer_length = 4;
+			break;
+		case 0x83:
+			/* Set the delay. */
+			delay = input_buffer[4];
+			delay <<= 8;
+			delay |= input_buffer[3];
+			delay <<= 8;
+			delay |= input_buffer[2];
+			delay <<= 8;
+			delay |= input_buffer[1];
 			break;
 		default:
 			break;

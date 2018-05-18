@@ -7,7 +7,7 @@
 #ifndef ATTINY85_WR_H_
 #define ATTINY85_WR_H_
 
-#define F_CPU 1000000L
+#define F_CPU 8000000L
 
 /*
   I2C Slave Support
@@ -16,8 +16,8 @@
 #define I2C_ADDRESS 8
 
 #define MAGIC 0xbacd
-#define PROJECT 0x01
-#define VERSION 0x01
+#define PROJECT 0x0001
+#define VERSION 0x0002
 
 void i2c_callback(uint8_t, const uint8_t *, uint8_t *, uint8_t *);
 

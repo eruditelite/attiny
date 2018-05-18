@@ -7,6 +7,8 @@
 #include <avr/io.h>
 #include <usitwislave.h>
 
+unsigned int delay;
+
 /*
   ------------------------------------------------------------------------------
   initialize
@@ -32,8 +34,10 @@ initialize(void)
 void
 work(void)
 {
+	delay = 1000;
+	
 	for (;;) {
 		PORTB ^= (1 << PORTB4);
-		time_delay_ms(1000);
+		time_delay_ms(delay);
 	}
 }

@@ -39,13 +39,15 @@ struct tr {
 enum trname {
 	trmagic = 0,
 	trproject = 1,
-	trversion = 2
+	trversion = 2,
+	trdelay = 3
 };
 
 struct tr trs[] = {
 	{"magic", 0, 2, 1},
 	{"project", 1, 2, 1},
-	{"version", 2, 2, 1}
+	{"version", 2, 2, 1},
+	{"delay", 3, 4, 0}
 };
 
 /*
@@ -148,6 +150,7 @@ main(int argc, char *argv[])
 	unsigned short magic;
 	unsigned short project;
 	unsigned short version;
+	unsigned int delay;
 
 	/* Open the I2C Bus */
 	if (0 > (fd = open("/dev/i2c-1", O_RDWR))) {
@@ -179,6 +182,24 @@ main(int argc, char *argv[])
 	}
 
 	printf("Project: 0x%04x Version: 0x%04x\n", project, version);
+
+	/* Display the current delay and set it to half. */
+
+	if (EXIT_SUCCESS != rread(fd, trdelay, &delay)) {
+		fprintf(stderr, "Read Failed\n");
+
+		return EXIT_FAILURE;
+	}
+
+	printf("Delay: %u\n", delay);
+
+	delay = delay / 2;
+
+	if (EXIT_SUCCESS != rwrite(fd, trdelay, (unsigned char *)&delay)) {
+		fprintf(stderr, "Write Failed\n");
+
+		return EXIT_FAILURE;
+	}
 
 	close(fd);
 

@@ -41,6 +41,13 @@ i2c_callback(uint8_t input_buffer_length,
 			output_buffer[1] = (VERSION & 0xff00) >> 8;
 			*output_buffer_length = 2;
 			break;
+		case 0x03:
+			output_buffer[0] = PLLCSR;
+			*output_buffer_length = 1;
+			break;
+		case 0x83:
+			PLLCSR = input_buffer[1];
+			break;
 		default:
 			break;
 		}
