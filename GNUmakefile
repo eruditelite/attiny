@@ -12,21 +12,20 @@ USITWI = ../usitwislave
 ATTINY = .
 AVR_CC = avr-gcc
 AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY) -I$(USITWI)
-AVR_SIM_CFLAGS = $(AVR_CFLAGS) -g -DSIM -I~/apps/simavr
 AVR_OBJ2HEX = avr-objcopy
 RESETPIN = 22
 AVRDUDE = avrdude
 AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P /dev/spidev0.0 -c linuxspi -b 10000
 
-all : attiny85_wr attiny85_wr.hex access
+all : attiny attiny.hex access
 
 access : access.c
 	gcc -O3 -Wall -o $@ $<
 
-attiny85_wr.hex : attiny85_wr
+attiny.hex : attiny
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
 
-attiny85_wr : main.o callbacks.o time.o work.o usitwislave.o
+attiny : main.o attiny.o usitwislave.o
 	$(AVR_CC) $(AVR_CFLAGS) -o $@ $^
 
 usitwislave.o : $(USITWI)/usitwislave.c
@@ -35,25 +34,17 @@ usitwislave.o : $(USITWI)/usitwislave.c
 main.o : $(ATTINY)/main.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-callbacks.o : callbacks.c
+attiny.o : attiny.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-time.o : $(ATTINY)/time.c
-	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
-
-work.o : work.c
-	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
-
-cscope : $(ATTINY)/main.c callbacks.c \
-	$(ATTINY)/time.c work.c \
-	$(USITWI)/usitwislave.c
+cscope : $(ATTINY)/main.c attiny.c $(USITWI)/usitwislave.c
 	@$(AVR_CC) $(AVR_CFLAGS) -M $^ \
 		| sed -e 's/[\\ ]/\n/g' \
 		| sed -e '/^$$/d' -e '/\.o:[ \t]*$$/d' \
 		| sort -u >cscope.files
 	@cscope -b
 
-install : attiny85_wr.hex
+install : attiny.hex
 	sudo gpio -g mode $(RESETPIN) out
 	sudo gpio -g write $(RESETPIN) 0
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U flash:w:$<
@@ -62,7 +53,8 @@ install : attiny85_wr.hex
 fuse :
 	sudo gpio -g mode $(RESETPIN) out
 	sudo gpio -g write $(RESETPIN) 0
-	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
+	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) \
+		-U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
 	sudo gpio -g write $(RESETPIN) 1
 
 reset :
@@ -71,4 +63,4 @@ reset :
 	sudo gpio -g write $(RESETPIN) 1
 
 clean :
-	rm -f *~ *.hex *.d *.o *.vcd attiny85_wr cscope.* access
+	rm -f *~ *.hex *.d *.o *.vcd attiny cscope.* access

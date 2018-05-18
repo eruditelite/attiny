@@ -2,7 +2,7 @@
   main.c
 */
 
-#include "attiny85_wr.h"
+#include "attiny.h"		/* Must be first for F_CPU! */
 
 #include <avr/io.h>
 #include <avr/sleep.h>
