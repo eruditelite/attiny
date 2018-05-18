@@ -6,16 +6,21 @@
 #
 ################################################################################
 
-MCU = attiny85
-AVRDUDEMCU = t85
+#MCU = attiny85
+#AVRDUDEMCU = t85
+
+MCU = attiny84
+AVRDUDEMCU = t84
+
+RESETPIN = 22
+AVRDUDE = avrdude
+AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P /dev/spidev0.0 -c linuxspi -b 10000
+
 USITWI = ../usitwislave
 ATTINY = .
 AVR_CC = avr-gcc
 AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY) -I$(USITWI)
 AVR_OBJ2HEX = avr-objcopy
-RESETPIN = 22
-AVRDUDE = avrdude
-AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P /dev/spidev0.0 -c linuxspi -b 10000
 
 all : attiny attiny.hex access
 

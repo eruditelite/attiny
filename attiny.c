@@ -92,7 +92,11 @@ time_init(void)
 	ticks = 3;
 
 	/* Set up the watchdog timer. */
+#if defined(__AVR_ATtiny84__)
+	WDTCSR = _BV(WDIE);
+#elif defined(__AVR_ATtiny85__)
 	WDTCR = _BV(WDIE);
+#endif
 
 	/* Enable interrupts. */
 	sei();
