@@ -1,11 +1,11 @@
 /*
-  attiny85_wr.h
+  attiny.h
 */
 
 #include <usitwislave.h>
 
-#ifndef ATTINY85_WR_H_
-#define ATTINY85_WR_H_
+#ifndef ATTINY_H_
+#define ATTINY_H_
 
 #define F_CPU 8000000L
 
@@ -13,7 +13,11 @@
   I2C Slave Support
 */
 
-#define I2C_ADDRESS 8
+#if defined(__AVR_ATtiny84__)
+#define I2C_ADDRESS 4
+#elif defined(__AVR_ATtiny85__)
+#define I2C_ADDRESS 5
+#endif
 
 #define MAGIC 0xbacd
 #define PROJECT 0x0001
@@ -45,4 +49,4 @@ void time_delay_ms(unsigned long);
 void initialize(void);
 void work(void);
 
-#endif	/* ATTINY85_WR_H_ */
+#endif	/* ATTINY_H_ */
