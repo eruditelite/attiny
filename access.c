@@ -148,6 +148,15 @@ main(int argc, char *argv[])
 	unsigned short magic;
 	unsigned short project;
 	unsigned short version;
+	int address;
+
+	if (2 > argc) {
+		fprintf(stderr, "I2C address is required!\n");
+
+		return EXIT_FAILURE;
+	}
+
+	address = (int)strtoul(argv[1], NULL, 0);
 
 	/* Open the I2C Bus */
 	if (0 > (fd = open("/dev/i2c-1", O_RDWR))) {
@@ -156,7 +165,7 @@ main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 	
-	if (0 > ioctl(fd, I2C_SLAVE, 8)) {
+	if (0 > ioctl(fd, I2C_SLAVE, address)) {
 		printf("IOCTL Failed: %s\n", strerror(errno));
 
 		return EXIT_FAILURE;
