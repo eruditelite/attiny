@@ -1,20 +1,77 @@
 ################################################################################
+################################################################################
 #
-# Makefile for "attiny85_wr".
+# Makefile for "attiny".
 #
-# Basic example of using attiny85 with registers accessible via I2C.
+# Basic examples of using attiny84/attiny85 with registers accessible via I2C.
 #
 ################################################################################
+################################################################################
 
-#MCU = attiny85
-#AVRDUDEMCU = t85
+###################################################
+## Setup for attiny84 on spidev0.0 with I2C id 4 ##
+###################################################
 
 MCU = attiny84
 AVRDUDEMCU = t84
+SPIDEV = /dev/spidev0.0
+
+###################################################
+## Setup for attiny85 on spidev1.0 with I2C id 5 ##
+###################################################
+
+#MCU = attiny85
+#AVRDUDEMCU = t85
+#SPIDEV = /dev/spidev1.0
+
+##################################################
+## Macros to switch PI modes and reset the AVRs ##
+##################################################
+
+define SWITCH_PI_TO_SPI
+gpio -g mode 2 in
+gpio -g mode 3 in
+gpio -g mode 9 alt0
+gpio -g mode 10 alt0
+gpio -g mode 11 alt0
+gpio -g mode 19 alt4
+gpio -g mode 20 alt4
+gpio -g mode 21 alt4
+endef
+
+define SWITCH_PI_TO_I2C
+gpio -g mode 9 in
+gpio -g mode 10 in
+gpio -g mode 11 in
+gpio -g mode 19 in
+gpio -g mode 20 in
+gpio -g mode 21 in
+gpio -g mode 2 alt0
+gpio -g mode 3 alt0
+endef
+
+define SET_RESET
+gpio -g mode 22 out
+gpio -g write 22 0
+endef
+
+define CLEAR_RESET
+gpio -g mode 22 out
+gpio -g write 22 1
+gpio -g mode 22 in
+endef
+
+##########################################################
+## Use GPIO 22 as the reset pin, and avrdude to program ##
+##########################################################
 
 RESETPIN = 22
 AVRDUDE = avrdude
-AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P /dev/spidev0.0 -c linuxspi -b 10000
+AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P $(SPIDEV) -c linuxspi -b 10000
+
+###############################
+## Build options and Targets ##
+###############################
 
 USITWI = ../usitwislave
 ATTINY = .
@@ -22,16 +79,20 @@ AVR_CC = avr-gcc
 AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY) -I$(USITWI)
 AVR_OBJ2HEX = avr-objcopy
 
-all : attiny attiny.hex access
+all : attiny attiny.hex access bbaccess
 
 access : access.c
 	gcc -O3 -Wall -o $@ $<
+
+bbaccess : bbaccess.c
+	gcc -O3 -Wall -pthread -o $@ $< -lpigpio -lrt
 
 attiny.hex : attiny
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
 
 attiny : main.o attiny.o usitwislave.o
 	$(AVR_CC) $(AVR_CFLAGS) -o $@ $^
+	avr-size -C --mcu $(MCU) $@
 
 usitwislave.o : $(USITWI)/usitwislave.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
@@ -43,29 +104,31 @@ attiny.o : attiny.c
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
 cscope : $(ATTINY)/main.c attiny.c $(USITWI)/usitwislave.c
-	@$(AVR_CC) $(AVR_CFLAGS) -M $^ \
+	$(AVR_CC) $(AVR_CFLAGS) -M $^ \
 		| sed -e 's/[\\ ]/\n/g' \
 		| sed -e '/^$$/d' -e '/\.o:[ \t]*$$/d' \
 		| sort -u >cscope.files
-	@cscope -b
+	cscope -b
 
 install : attiny.hex
-	sudo gpio -g mode $(RESETPIN) out
-	sudo gpio -g write $(RESETPIN) 0
+	@$(call SWITCH_PI_TO_SPI)
+	@$(call SET_RESET)
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U flash:w:$<
-	sudo gpio -g write $(RESETPIN) 1
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
 
 fuse :
-	sudo gpio -g mode $(RESETPIN) out
-	sudo gpio -g write $(RESETPIN) 0
+	@$(call SWITCH_PI_TO_SPI)
+	@$(call SET_RESET)
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) \
 		-U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
-	sudo gpio -g write $(RESETPIN) 1
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
 
 reset :
-	sudo gpio -g mode $(RESETPIN) out
-	sudo gpio -g write $(RESETPIN) 0
-	sudo gpio -g write $(RESETPIN) 1
+	@$(call SET_RESET)
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
 
 clean :
-	rm -f *~ *.hex *.d *.o *.vcd attiny cscope.* access
+	@rm -f *~ *.hex *.d *.o *.vcd attiny cscope.* access bbaccess
