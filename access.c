@@ -1,5 +1,5 @@
 /*
-  bbdaccess.c
+  access.c
 
   Access to target registers using pigpio via socket interface.
 
@@ -11,13 +11,16 @@
   3) A width.
   4) An access property, read only or read write.
 
-  Bit 8 is the read/write bit in the command, bits 6:0 are the offset.
+  Bit 7 is the read/write bit in the command, bits 6:0 are the offset.
 
   All projects should have the following.
 
   magic, 0x00, 2, ro
   project, 0x01, 2, ro
   version, 0x02, 2, ro
+
+  In this case, three writable registers are added, dummy1, dummy2,
+  and dummy4 (char, short, and long).
 */
 
 #include <stdio.h>
@@ -25,13 +28,19 @@
 #include <stdint.h>
 #include <string.h>
 #include <signal.h>
+#include <getopt.h>
+#include <limits.h>
 #include <pigpiod_if2.h>
 
-#define SDA 2
-#define SCL 3
-#define BAUD 100000
-static int i2c_address;
-static int pi;
+/*
+  Options, Addresses, Etc.
+*/
+
+static int sda = 2;
+static int scl = 3;
+static int speed = 100000;
+static int i2c_address = -1;
+static int pi = -1;
 
 struct tr {
 	const char *name;
@@ -66,10 +75,11 @@ struct tr trs[] = {
 void
 handler(int signal)
 {
-	bb_i2c_close(pi, SDA);
+	/* Try to shut everything down. */
+	bb_i2c_close(pi, sda);
 	pigpio_stop(pi);
 
-	exit(EXIT_SUCCESS);
+	exit(EXIT_FAILURE);
 }
 
 /*
@@ -167,9 +177,9 @@ traccess(int pi, enum trname trn, int read, void *xfer)
 #endif
 
 	if (0 != read)
-		rc = bb_i2c_zip(pi, SDA, zip, zi, buf, reg->width);
+		rc = bb_i2c_zip(pi, sda, zip, zi, buf, reg->width);
 	else
-		rc = bb_i2c_zip(pi, SDA, zip, zi, NULL, 0);
+		rc = bb_i2c_zip(pi, sda, zip, zi, NULL, 0);
 
 	free(zip);
 
@@ -232,6 +242,33 @@ traccess(int pi, enum trname trn, int read, void *xfer)
 
 /*
   ------------------------------------------------------------------------------
+  usage
+*/
+
+/*
+  ------------------------------------------------------------------------------
+  usage
+*/
+
+static void
+usage(const char *prog, int exit_code)
+{
+	printf("Usage: %s [-abcdt]\n", prog);
+	printf("  -a --ipaddress  Hostname or IP Address (default localhost)\n"
+	       "  -c --clockpin   Pin (BCM) to use as I2C scl (default %d)\n"
+	       "  -d --datapin    Pin (BCM) to use as I2C sda (default %d)\n"
+	       "  -h --help       Help\n"
+	       "  -i --i2caddress I2C address (default %d)\n"
+	       "  -p --port       Port number\n"
+	       "  -s --speed      I2C clock rate (Hz, default %d)\n"
+	       "  -t --test       Run a test loop for given number of times\n",
+	       i2c_address, speed, scl, sda);
+
+	exit(1);
+}
+
+/*
+  ------------------------------------------------------------------------------
   main
 */
 
@@ -245,21 +282,73 @@ main(int argc, char *argv[])
 	unsigned char dummy1;
 	unsigned short dummy2;
 	unsigned long dummy4;
+	int test = 1;
+	char ip_address[NAME_MAX];
+	char ip_port[NAME_MAX];
 
-	if (4 > argc) {
-		fprintf(stderr,
-			"I2C address, IP address, and IP port are required!\n");
+	strcpy(ip_address, "localhost");
+	strcpy(ip_port, "8888");
 
-		return EXIT_FAILURE;
+	/*
+	  Get the Options
+	*/
+
+	while (1) {
+		static const struct option lopts[] = {
+			{ "ipaddress",  1, 0, 'a' },
+			{ "clockpin",   1, 0, 'c' },
+			{ "datapin",    1, 0, 'd' },
+			{ "help",       1, 0, 'h' },
+			{ "i2caddress", 1, 0, 'p' },
+			{ "port",       1, 0, 'p' },
+			{ "speed",      1, 0, 's' },
+			{ "test",       1, 0, 't' },
+			{ NULL, 0, 0, 0 },
+		};
+
+		int c;
+
+		c = getopt_long(argc, argv, "a:c:d:hi:p:s:t:", lopts, NULL);
+
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'a':
+			strcpy(ip_address, optarg);
+			break;
+		case 'c':
+			scl = strtol(optarg, NULL, 0);
+			break;
+		case 'd':
+			sda = strtol(optarg, NULL, 0);
+			break;
+		case 'h':
+			usage(argv[0], EXIT_SUCCESS);
+			break;
+		case 'i':
+			i2c_address = strtol(optarg, NULL, 0);
+			break;
+		case 'p':
+			strcpy(ip_port, optarg);
+			break;
+		case 's':
+			speed = strtol(optarg, NULL, 0);
+			break;
+		case 't':
+			test = strtol(optarg, NULL, 0);
+			break;
+		default:
+			usage(argv[0], EXIT_FAILURE);
+			break;
+		}
 	}
-
-	i2c_address = (int)strtoul(argv[1], NULL, 0);
 
 	/*
 	  Set up the Socket Connection
 	*/
 
-	pi = pigpio_start(argv[2], argv[3]);
+	pi = pigpio_start(ip_address, ip_port);
 
 	if (0 > pi) {
 		fprintf(stderr, "pigpio_start() failed: %d\n", pi);
@@ -271,7 +360,7 @@ main(int argc, char *argv[])
 	  Open Bit Banged I2C
 	*/
 
-	rc = bb_i2c_open(pi, SDA, SCL, BAUD);
+	rc = bb_i2c_open(pi, sda, scl, speed);
 
 	if (0 != rc) {
 		fprintf(stderr, "bb_i2c_open() failed: 0x%x\n", rc);
@@ -289,69 +378,73 @@ main(int argc, char *argv[])
 	signal(SIGCONT, handler);
 	signal(SIGTERM, handler);
 
-	/*
-	  Verify the Magic Number, and get the Project and Version
-	*/
+	while (0 < test--) {
+		/*
+		  Verify the Magic Number, and get the Project and Version
+		*/
 
-	if (EXIT_SUCCESS != traccess(pi, trmagic, 1, &magic) ||
-	    EXIT_SUCCESS != traccess(pi, trproject, 1, &project) ||
-	    EXIT_SUCCESS != traccess(pi, trversion, 1, &version)) {
-		fprintf(stderr, "Read Failed\n");
-		rc = EXIT_FAILURE;
-		goto exit;
+		if (EXIT_SUCCESS != traccess(pi, trmagic, 1, &magic) ||
+		    EXIT_SUCCESS != traccess(pi, trproject, 1, &project) ||
+		    EXIT_SUCCESS != traccess(pi, trversion, 1, &version)) {
+			fprintf(stderr, "Read Failed\n");
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		if (0xbacd != magic) {
+			fprintf(stderr, "Bad Magic Number: 0x%x\n", magic);
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		printf("Project: 0x%04x Version: 0x%04x\n", project, version);
+
+		/*
+		  Read Dummys
+		*/
+
+		if (EXIT_SUCCESS != traccess(pi, trdummy1, 1, &dummy1) ||
+		    EXIT_SUCCESS != traccess(pi, trdummy2, 1, &dummy2) ||
+		    EXIT_SUCCESS != traccess(pi, trdummy4, 1, &dummy4)) {
+			fprintf(stderr, "Read Failed\n");
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		printf("dummys are 0x%02x 0x%04x 0x%08lx\n",
+		       dummy1, dummy2, dummy4);
+
+		/*
+		  Write Dummys
+		*/
+
+		dummy1 = ~dummy1;
+		dummy2 = ~dummy2;
+		dummy4 = ~dummy4;
+
+		if ((EXIT_SUCCESS != traccess(pi, trdummy1, 0, &dummy1)) ||
+		    (EXIT_SUCCESS != traccess(pi, trdummy2, 0, &dummy2)) ||
+		    (EXIT_SUCCESS != traccess(pi, trdummy4, 0, &dummy4))) {
+			fprintf(stderr, "Write Failed\n");
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		/*
+		  Read Dummys Again
+		*/
+
+		if (EXIT_SUCCESS != traccess(pi, trdummy1, 1, &dummy1) ||
+		    EXIT_SUCCESS != traccess(pi, trdummy2, 1, &dummy2) ||
+		    EXIT_SUCCESS != traccess(pi, trdummy4, 1, &dummy4)) {
+			fprintf(stderr, "Read Failed\n");
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		printf("dummys are 0x%02x 0x%04x 0x%08lx\n",
+		       dummy1, dummy2, dummy4);
 	}
-
-	if (0xbacd != magic) {
-		fprintf(stderr, "Bad Magic Number: 0x%x\n", magic);
-		rc = EXIT_FAILURE;
-		goto exit;
-	}
-
-	printf("Project: 0x%04x Version: 0x%04x\n", project, version);
-
- 	/*
-	  Read Dummys
-	*/
-
-	if (EXIT_SUCCESS != traccess(pi, trdummy1, 1, &dummy1) ||
-	    EXIT_SUCCESS != traccess(pi, trdummy2, 1, &dummy2) ||
-	    EXIT_SUCCESS != traccess(pi, trdummy4, 1, &dummy4)) {
-		fprintf(stderr, "Read Failed\n");
-		rc = EXIT_FAILURE;
-		goto exit;
-	}
-
-	printf("dummys are 0x%02x 0x%04x 0x%08lx\n", dummy1, dummy2, dummy4);
-
-	/*
-	  Write Dummys
-	*/
-
-	dummy1 = ~dummy1;
-	dummy2 = ~dummy2;
-	dummy4 = ~dummy4;
-
-	if ((EXIT_SUCCESS != traccess(pi, trdummy1, 0, &dummy1)) ||
-	    (EXIT_SUCCESS != traccess(pi, trdummy2, 0, &dummy2)) ||
-	    (EXIT_SUCCESS != traccess(pi, trdummy4, 0, &dummy4))) {
-		fprintf(stderr, "Write Failed\n");
-		rc = EXIT_FAILURE;
-		goto exit;
-	}
-
- 	/*
-	  Read Dummys Again
-	*/
-
-	if (EXIT_SUCCESS != traccess(pi, trdummy1, 1, &dummy1) ||
-	    EXIT_SUCCESS != traccess(pi, trdummy2, 1, &dummy2) ||
-	    EXIT_SUCCESS != traccess(pi, trdummy4, 1, &dummy4)) {
-		fprintf(stderr, "Read Failed\n");
-		rc = EXIT_FAILURE;
-		goto exit;
-	}
-
-	printf("dummys are 0x%02x 0x%04x 0x%08lx\n", dummy1, dummy2, dummy4);
 
 	rc = EXIT_SUCCESS;
 
@@ -361,7 +454,7 @@ main(int argc, char *argv[])
 	  Close the Bit Banged I2C Interface
 	*/
 
-	bb_i2c_close(pi, SDA);
+	bb_i2c_close(pi, sda);
 
 	/*
 	  Shut Down "pigpiod"
