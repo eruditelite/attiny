@@ -39,8 +39,9 @@
 static int sda = 2;
 static int scl = 3;
 static int speed = 100000;
-static int i2c_address = -1;
+static int i2c_address = 5;
 static int pi = -1;
+static int verbose = 0;
 
 struct tr {
 	const char *name;
@@ -59,7 +60,7 @@ enum trname {
 };
 
 struct tr trs[] = {
-	{"magic", trmagic, 2, 1},
+	{"magic",   trmagic, 2, 1},
 	{"project", trproject, 2, 1},
 	{"version", trversion, 2, 1},
 	{"dummy1", trdummy1, 1, 0},
@@ -87,8 +88,6 @@ handler(int signal)
   traccess
 */
 
-/*#define DEBUG*/
-
 static int
 traccess(int pi, enum trname trn, int read, void *xfer)
 {
@@ -97,9 +96,7 @@ traccess(int pi, enum trname trn, int read, void *xfer)
 	char *zip;
 	int zi = 0;
 	char *buf;
-#ifdef DEBUG
 	int i;
-#endif
 
 	if (0 != read) {
 		/* this is a read */
@@ -167,14 +164,14 @@ traccess(int pi, enum trname trn, int read, void *xfer)
 	/* End the Sequence */
 	zip[zi++] = 0;
 
-#ifdef DEBUG
-	printf("zip: ");
+	if (0 != verbose) {
+		printf("zip: ");
 
-	for (i = 0; i < zi; ++i)
-		printf("%02x ", zip[i]);
+		for (i = 0; i < zi; ++i)
+			printf("%02x ", zip[i]);
 
-	puts("");
-#endif
+		puts("");
+	}
 
 	if (0 != read)
 		rc = bb_i2c_zip(pi, sda, zip, zi, buf, reg->width);
@@ -183,8 +180,7 @@ traccess(int pi, enum trname trn, int read, void *xfer)
 
 	free(zip);
 
-#ifdef DEBUG
-	if (0 != read) {
+	if ((0 != verbose) && (0 != read)) {
 		printf("buf: "); 
 
 		for (i = 0; i < reg->width; ++i)
@@ -192,7 +188,6 @@ traccess(int pi, enum trname trn, int read, void *xfer)
 
 		puts("");
 	}
-#endif
 
 	if (0 != read) {
 		/* this is a read */
@@ -245,11 +240,6 @@ traccess(int pi, enum trname trn, int read, void *xfer)
   usage
 */
 
-/*
-  ------------------------------------------------------------------------------
-  usage
-*/
-
 static void
 usage(const char *prog, int exit_code)
 {
@@ -261,7 +251,8 @@ usage(const char *prog, int exit_code)
 	       "  -i --i2caddress I2C address (default %d)\n"
 	       "  -p --port       Port number\n"
 	       "  -s --speed      I2C clock rate (Hz, default %d)\n"
-	       "  -t --test       Run a test loop for given number of times\n",
+	       "  -t --test       Run a test loop for given number of times\n"
+	       "  -v --verbose    Spew extra info...\n",
 	       i2c_address, speed, scl, sda);
 
 	exit(1);
@@ -279,12 +270,12 @@ main(int argc, char *argv[])
 	unsigned short magic;
 	unsigned short project;
 	unsigned short version;
-	unsigned char dummy1;
-	unsigned short dummy2;
-	unsigned long dummy4;
 	int test = 1;
 	char ip_address[NAME_MAX];
 	char ip_port[NAME_MAX];
+	unsigned char dummy1;
+	unsigned short dummy2;
+	unsigned long dummy4;
 
 	strcpy(ip_address, "localhost");
 	strcpy(ip_port, "8888");
@@ -303,12 +294,13 @@ main(int argc, char *argv[])
 			{ "port",       1, 0, 'p' },
 			{ "speed",      1, 0, 's' },
 			{ "test",       1, 0, 't' },
+			{ "verbose",    1, 0, 'v' },
 			{ NULL, 0, 0, 0 },
 		};
 
 		int c;
 
-		c = getopt_long(argc, argv, "a:c:d:hi:p:s:t:", lopts, NULL);
+		c = getopt_long(argc, argv, "a:c:d:hi:p:s:t:v", lopts, NULL);
 
 		if (c == -1)
 			break;
@@ -338,6 +330,9 @@ main(int argc, char *argv[])
 		case 't':
 			test = strtol(optarg, NULL, 0);
 			break;
+		case 'v':
+			verbose = 1;
+			break;
 		default:
 			usage(argv[0], EXIT_FAILURE);
 			break;
@@ -347,6 +342,10 @@ main(int argc, char *argv[])
 	/*
 	  Set up the Socket Connection
 	*/
+
+	if (0 != verbose)
+		printf("--> Starting pigpio with (%s, %s)\n",
+		       ip_address, ip_port);
 
 	pi = pigpio_start(ip_address, ip_port);
 
@@ -359,6 +358,10 @@ main(int argc, char *argv[])
 	/*
 	  Open Bit Banged I2C
 	*/
+
+	if (0 != verbose)
+		printf("--> Opening pigpio I2C with (, %d, %d, %d)\n",
+		       sda, scl, speed);
 
 	rc = bb_i2c_open(pi, sda, scl, speed);
 

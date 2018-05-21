@@ -61,14 +61,6 @@ gpio -g write 22 1
 gpio -g mode 22 in
 endef
 
-##########################################################
-## Use GPIO 22 as the reset pin, and avrdude to program ##
-##########################################################
-
-RESETPIN = 22
-AVRDUDE = avrdude
-AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P $(SPIDEV) -c linuxspi -b 10000
-
 ###############################
 ## Build options and Targets ##
 ###############################
@@ -78,6 +70,10 @@ ATTINY = .
 AVR_CC = avr-gcc
 AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY) -I$(USITWI)
 AVR_OBJ2HEX = avr-objcopy
+AVRDUDE = avrdude
+AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P $(SPIDEV) -c linuxspi -b 10000
+
+.PHONY : all cscope install fuse reset clean
 
 all : attiny attiny.hex access
 
