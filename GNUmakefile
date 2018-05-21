@@ -79,13 +79,10 @@ AVR_CC = avr-gcc
 AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY) -I$(USITWI)
 AVR_OBJ2HEX = avr-objcopy
 
-all : attiny attiny.hex access bbaccess
+all : attiny attiny.hex access
 
 access : access.c
-	gcc -O3 -Wall -o $@ $<
-
-bbaccess : bbaccess.c
-	gcc -O3 -Wall -pthread -o $@ $< -lpigpio -lrt
+	gcc -Wall -pthread -o $@ $< -lpigpiod_if2 -lrt
 
 attiny.hex : attiny
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
@@ -131,4 +128,4 @@ reset :
 	@$(call SWITCH_PI_TO_I2C)
 
 clean :
-	@rm -f *~ *.hex *.d *.o *.vcd attiny cscope.* access bbaccess
+	@rm -f *~ *.hex *.d *.o *.vcd attiny cscope.* access
