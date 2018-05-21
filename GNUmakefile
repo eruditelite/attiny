@@ -1,12 +1,12 @@
 ################################################################################
-################################################################################
 #
 # Makefile for "attiny".
 #
 # Basic examples of using attiny84/attiny85 with registers accessible via I2C.
 #
 ################################################################################
-################################################################################
+
+ifeq ($(AVRTARGET),84)
 
 ###################################################
 ## Setup for attiny84 on spidev0.0 with I2C id 4 ##
@@ -16,39 +16,63 @@ MCU = attiny84
 AVRDUDEMCU = t84
 SPIDEV = /dev/spidev0.0
 
+define SWITCH_PI_TO_SPI
+gpio -g mode 0 in
+gpio -g mode 1 in
+gpio -g mode 9 alt0
+gpio -g mode 10 alt0
+gpio -g mode 11 alt0
+endef
+
+define SWITCH_PI_TO_I2C
+gpio -g mode 0 alt0
+gpio -g mode 1 alt0
+gpio -g mode 9 in
+gpio -g mode 10 in
+gpio -g mode 11 in
+endef
+
+endif
+
+ifeq ($(AVRTARGET),85)
+
 ###################################################
 ## Setup for attiny85 on spidev1.0 with I2C id 5 ##
 ###################################################
 
-#MCU = attiny85
-#AVRDUDEMCU = t85
-#SPIDEV = /dev/spidev1.0
-
-##################################################
-## Macros to switch PI modes and reset the AVRs ##
-##################################################
+MCU = attiny85
+AVRDUDEMCU = t85
+SPIDEV = /dev/spidev1.0
 
 define SWITCH_PI_TO_SPI
 gpio -g mode 2 in
 gpio -g mode 3 in
-gpio -g mode 9 alt0
-gpio -g mode 10 alt0
-gpio -g mode 11 alt0
 gpio -g mode 19 alt4
 gpio -g mode 20 alt4
 gpio -g mode 21 alt4
 endef
 
 define SWITCH_PI_TO_I2C
-gpio -g mode 9 in
-gpio -g mode 10 in
-gpio -g mode 11 in
+gpio -g mode 2 alt0
+gpio -g mode 3 alt0
 gpio -g mode 19 in
 gpio -g mode 20 in
 gpio -g mode 21 in
-gpio -g mode 2 alt0
-gpio -g mode 3 alt0
 endef
+
+endif
+
+############################################
+## Make Sure AVRTARGET is either 84 or 85 ##
+############################################
+
+ifndef MCU
+$(error AVRTARGET must be either 84 or 85)
+endif
+
+##################
+## Reset Macros ##
+##################
 
 define SET_RESET
 gpio -g mode 22 out
@@ -78,7 +102,7 @@ AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P $(SPIDEV) -c linuxspi -b 10000
 all : attiny attiny.hex access
 
 access : access.c
-	gcc -Wall -pthread -o $@ $< -lpigpiod_if2 -lrt
+	gcc -Wall -pthread -DAVRTARGET=$(AVRTARGET) -o $@ $< -lpigpiod_if2 -lrt
 
 attiny.hex : attiny
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@

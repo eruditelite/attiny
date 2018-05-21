@@ -36,12 +36,21 @@
   Options, Addresses, Etc.
 */
 
-static int sda = 2;
-static int scl = 3;
-static int speed = 100000;
-static int i2c_address = 5;
+static int speed = 80000;
 static int pi = -1;
 static int verbose = 0;
+
+#if defined(AVRTARGET) && AVRTARGET == 84
+static int sda = 0;
+static int scl = 1;
+static int i2c_address = 4;
+#elif defined(AVRTARGET) && AVRTARGET == 85
+static int sda = 2;
+static int scl = 3;
+static int i2c_address = 5;
+#else
+#error "AVRTARGET must be either 84 or 85!"
+#endif
 
 struct tr {
 	const char *name;
