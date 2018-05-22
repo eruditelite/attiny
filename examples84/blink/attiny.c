@@ -11,7 +11,7 @@
 #include <util/delay.h>
 #include <usitwislave.h>
 
-unsigned long delay[4];
+static unsigned long delay[4];
 
 /*
   ==============================================================================
@@ -149,8 +149,8 @@ i2c_callback(uint8_t input_buffer_length,
 			output_buffer[1] = (VERSION & 0xff00) >> 8;
 			*output_buffer_length = 2;
 			break;
-		case 0x3:
-			/* Get delay 1. */
+		case 0x03:
+			/* Read Delay 1 */
 			output_buffer[0] = delay[0] & 0xff;
 			output_buffer[1] = (delay[0] & 0xff00) >> 8;
 			output_buffer[2] = (delay[0] & 0xff0000) >> 16;
@@ -158,17 +158,15 @@ i2c_callback(uint8_t input_buffer_length,
 			*output_buffer_length = 4;
 			break;
 		case 0x83:
-			/* Set delay 1. */
-			delay[0] = input_buffer[4];
-			delay[0] <<= 8;
-			delay[0] |= input_buffer[3];
-			delay[0] <<= 8;
-			delay[0] |= input_buffer[2];
-			delay[0] <<= 8;
-			delay[0] |= input_buffer[1];
+			/* Write Delay 1 */
+			delay[0] =
+				((unsigned long)(input_buffer[4]) << 24) |
+				((unsigned long)(input_buffer[3]) << 16) |
+				((unsigned long)(input_buffer[2]) << 8) |
+				((unsigned long)(input_buffer[1]));
 			break;
-		case 0x4:
-			/* Get delay 2. */
+		case 0x04:
+			/* Read Delay 2 */
 			output_buffer[0] = delay[1] & 0xff;
 			output_buffer[1] = (delay[1] & 0xff00) >> 8;
 			output_buffer[2] = (delay[1] & 0xff0000) >> 16;
@@ -176,17 +174,15 @@ i2c_callback(uint8_t input_buffer_length,
 			*output_buffer_length = 4;
 			break;
 		case 0x84:
-			/* Set delay 2. */
-			delay[1] = input_buffer[4];
-			delay[1] <<= 8;
-			delay[1] |= input_buffer[3];
-			delay[1] <<= 8;
-			delay[1] |= input_buffer[2];
-			delay[1] <<= 8;
-			delay[1] |= input_buffer[1];
+			/* Write Delay 2 */
+			delay[1] =
+				((unsigned long)(input_buffer[4]) << 24) |
+				((unsigned long)(input_buffer[3]) << 16) |
+				((unsigned long)(input_buffer[2]) << 8) |
+				((unsigned long)(input_buffer[1]));
 			break;
-		case 0x5:
-			/* Get delay 3. */
+		case 0x05:
+			/* Read Delay 3 */
 			output_buffer[0] = delay[2] & 0xff;
 			output_buffer[1] = (delay[2] & 0xff00) >> 8;
 			output_buffer[2] = (delay[2] & 0xff0000) >> 16;
@@ -194,14 +190,12 @@ i2c_callback(uint8_t input_buffer_length,
 			*output_buffer_length = 4;
 			break;
 		case 0x85:
-			/* Set delay 3. */
-			delay[2] = input_buffer[4];
-			delay[2] <<= 8;
-			delay[2] |= input_buffer[3];
-			delay[2] <<= 8;
-			delay[2] |= input_buffer[2];
-			delay[2] <<= 8;
-			delay[2] |= input_buffer[1];
+			/* Write Delay 3 */
+			delay[2] =
+				((unsigned long)(input_buffer[4]) << 24) |
+				((unsigned long)(input_buffer[3]) << 16) |
+				((unsigned long)(input_buffer[2]) << 8) |
+				((unsigned long)(input_buffer[1]));
 			break;
 		default:
 			break;
@@ -255,7 +249,33 @@ work(void)
 	}
 
 	start_ticks = time_get_ticks();
-	
+
+#if 1
+	for (;;) {
+		unsigned long ticks;
+
+		usi_twi_check();
+		ticks = time_get_ticks();
+		ticks -= start_ticks;
+		ticks *= time_ms_per_tick();
+
+		for (i = 0; i < 3; ++i) {
+			usi_twi_check();
+
+			if (ticks >= (n[i] * delay[i])) {
+#if 0
+				PORTB ^= _BV(PB0);
+				usi_twi_check();
+				PORTB ^= _BV(PB1);
+				usi_twi_check();
+#endif
+				PORTB ^= _BV(PB2);
+				usi_twi_check();
+				++n[i];
+			}
+		}
+	}
+#else
 	for (;;) {
 		unsigned long ticks;
 
@@ -274,6 +294,7 @@ work(void)
 
 		usi_twi_check();
 	}
+#endif
 
 	return;
 }

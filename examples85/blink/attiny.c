@@ -94,7 +94,11 @@ time_init(void)
 	ticks = 3;
 
 	/* Set up the watchdog timer. */
+#if defined(__AVR_ATtiny84__)
+	WDTCSR = _BV(WDIE);
+#elif defined(__AVR_ATtiny85__)
 	WDTCR = _BV(WDIE);
+#endif
 
 	/* Enable interrupts. */
 	sei();
@@ -124,6 +128,9 @@ i2c_callback(uint8_t input_buffer_length,
 	     uint8_t *output_buffer)
 {
 	int i;
+	static unsigned char dummy1 = 0xd1;
+	static unsigned short dummy2 = 0xd2d2;
+	static unsigned long dummy4 = 0xd4d4d4d4;
 
 	for (i = 0; i < input_buffer_length; ++i) {
 		switch (input_buffer[i]) {
@@ -155,13 +162,10 @@ i2c_callback(uint8_t input_buffer_length,
 			break;
 		case 0x83:
 			/* Set the delay. */
-			delay = input_buffer[4];
-			delay <<= 8;
-			delay |= input_buffer[3];
-			delay <<= 8;
-			delay |= input_buffer[2];
-			delay <<= 8;
-			delay |= input_buffer[1];
+			delay =	((unsigned long)(input_buffer[4]) << 24) |
+				((unsigned long)(input_buffer[3]) << 16) |
+				((unsigned long)(input_buffer[2]) << 8) |
+				((unsigned long)(input_buffer[1]));
 			break;
 		default:
 			break;

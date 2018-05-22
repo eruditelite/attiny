@@ -1,7 +1,7 @@
 /*
   access.c
 
-  Access to target registers.
+  Access to target registers using pigpio via socket interface.
 
   Each project can define "registers" that can be accessed via i2c.
   Each register will have the following:
@@ -11,23 +11,46 @@
   3) A width.
   4) An access property, read only or read write.
 
-  Bit 8 is the read/write bit in the command, bits 6:0 are the offset.
+  Bit 7 is the read/write bit in the command, bits 6:0 are the offset.
 
   All projects should have the following.
 
   magic, 0x00, 2, ro
   project, 0x01, 2, ro
   version, 0x02, 2, ro
+
+  In this case, three writable registers are added, dummy1, dummy2,
+  and dummy4 (char, short, and long).
 */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
+#include <signal.h>
+#include <getopt.h>
+#include <limits.h>
+#include <pigpiod_if2.h>
+
+/*
+  Options, Addresses, Etc.
+*/
+
+static int speed = 80000;
+static int pi = -1;
+static int verbose = 0;
+
+#if defined(AVRTARGET) && AVRTARGET == 84
+static int sda = 0;
+static int scl = 1;
+static int i2c_address = 4;
+#elif defined(AVRTARGET) && AVRTARGET == 85
+static int sda = 2;
+static int scl = 3;
+static int i2c_address = 5;
+#else
+#error "AVRTARGET must be either 84 or 85!"
+#endif
 
 struct tr {
 	const char *name;
@@ -44,98 +67,201 @@ enum trname {
 };
 
 struct tr trs[] = {
-	{"magic", 0, 2, 1},
-	{"project", 1, 2, 1},
-	{"version", 2, 2, 1},
-	{"delay", 3, 4, 0}
+	{"magic",   trmagic, 2, 1},
+	{"project", trproject, 2, 1},
+	{"version", trversion, 2, 1},
+	{"delay",   trdelay, 4, 0}
 };
 
 /*
   ------------------------------------------------------------------------------
-  rread
+  handler
 */
 
-int
-rread(int fd, enum trname trn, void *buffer)
+void
+handler(int signal)
 {
-	unsigned char *buf;
-	struct tr *reg = &trs[trn];
+	/* Try to shut everything down. */
+	bb_i2c_close(pi, sda);
+	pigpio_stop(pi);
 
-	buf = malloc(reg->width);
-
-	/* Write the Offset */
-
-	buf[0] = reg->offset;
-
-	if (1 != write(fd, buf, 1)) {
-		fprintf(stderr, "write() failed: %s\n", strerror(errno));
-		free(buf);
-
-		return -1;
-	}
-
-	if (reg->width != read(fd, buf, reg->width)) {
-		fprintf(stderr,	"read() failed: %s\n", strerror(errno));
-		free(buf);
-			
-		return -1;
-	}
-
-	switch (reg->width) {
-	case 1:
-		*((unsigned char *)buffer) =
-			buf[0];
-		break;
-	case 2:
-		*((unsigned short *)buffer) =
-			(buf[1] << 8) | buf[0];
-		break;
-	case 4:
-		*((unsigned int *)buffer) =
-			(buf[3] << 24) | (buf[2] << 16) |
-			(buf[1] << 8) | buf[0];
-		break;
-	default:
-		fprintf(stderr, "Invalid Width: %d\n", reg->width);
-		break;
-	}
-
-	free(buf);
-
-	return EXIT_SUCCESS;
+	exit(EXIT_FAILURE);
 }
 
 /*
   ------------------------------------------------------------------------------
-  rwrite
+  traccess
 */
 
-int
-rwrite(int fd, enum trname trn, unsigned char *buffer)
+static int
+traccess(int pi, enum trname trn, int read, void *xfer)
 {
-	int i;
-	unsigned char *buf;
+	int rc;
 	struct tr *reg = &trs[trn];
+	char *zip;
+	int zi = 0;
+	char *buf;
+	int i;
 
-	buf = malloc(reg->width + 1);
-
-	/* Write the Offset and Data */
-
-	buf[0] = (0x80 | reg->offset);
-
-	for (i = 0; i < reg->width; ++i)
-		buf[(i + 1)] = buffer[i];
-
-	if ((1 + reg->width) != write(fd, buf, (1 + reg->width))) {
-		fprintf(stderr, "write() failed: %s\n", strerror(errno));
-		free(buf);
-
-		return -1;
+	if (0 != read) {
+		/* this is a read */
+		zip = malloc(12);
+		buf = malloc(reg->width);
+	} else {
+		/* this is a write */
+		zip = malloc(12 + reg->width);
 	}
 
-	free(buf);
+	/* Write the Device Address */
+	zip[zi++] = 4;
+	zip[zi++] = i2c_address;
 
-	return EXIT_SUCCESS;
+	if (0 != read) {
+		/* this is a read */
+
+		/* Write the Register Offset */
+		zip[zi++] = 2;
+		zip[zi++] = 7;
+		zip[zi++] = 1;
+		zip[zi++] = reg->offset;
+		zip[zi++] = 3;
+		zip[zi++] = 2;
+		zip[zi++] = 6;
+		zip[zi++] = reg->width;
+		zip[zi++] = 3;
+	} else {
+		/* this is a write */
+
+		/* Write the Register Offset */
+		zip[zi++] = 2;
+		zip[zi++] = 7;
+		zip[zi++] = 1 + reg->width;
+		zip[zi++] = (0x80 | reg->offset);
+
+		switch (reg->width) {
+		case 1:
+			zip[zi++] = *((unsigned char *)xfer);
+			break;
+		case 2:
+		{
+			unsigned short p = *((unsigned short *)xfer);
+			zip[zi++] = (p & 0xff);
+			zip[zi++] = (p & 0xff00) >> 8;
+		}
+		break;
+		case 4:
+		{
+			unsigned long p = *((unsigned long *)xfer);
+			zip[zi++] = (p & 0xff);
+			zip[zi++] = (p & 0xff00) >> 8;
+			zip[zi++] = (p & 0xff0000) >> 16;
+			zip[zi++] = (p & 0xff000000) >> 24;
+		}
+		break;
+		default:
+			fprintf(stderr, "%d - Internal Error!\n", __LINE__);
+			break;
+		}
+
+		zip[zi++] = 3;
+	}
+
+	/* End the Sequence */
+	zip[zi++] = 0;
+
+	if (0 != verbose) {
+		printf("zip: ");
+
+		for (i = 0; i < zi; ++i)
+			printf("%02x ", zip[i]);
+
+		puts("");
+	}
+
+	if (0 != read)
+		rc = bb_i2c_zip(pi, sda, zip, zi, buf, reg->width);
+	else
+		rc = bb_i2c_zip(pi, sda, zip, zi, NULL, 0);
+
+	free(zip);
+
+	if ((0 != verbose) && (0 != read)) {
+		printf("buf: "); 
+
+		for (i = 0; i < reg->width; ++i)
+			printf("%02x ", buf[i]);
+
+		puts("");
+	}
+
+	if (0 != read) {
+		/* this is a read */
+		if (reg->width != rc) {
+			fprintf(stderr,
+				"%d: bb_i2c_zip() failed: %d\n", __LINE__, rc);
+
+			if (0 != read)
+				free(buf);
+
+			return -1;
+		}
+
+		switch (reg->width) {
+		case 1:
+			*((unsigned char *)xfer) = buf[0];
+			break;
+		case 2:
+			*((unsigned short *)xfer) = (buf[1] << 8) | buf[0];
+			break;
+		case 4:
+			*((unsigned int *)xfer) =
+				(buf[3] << 24) | (buf[2] << 16) |
+				(buf[1] << 8) | buf[0];
+			break;
+		default:
+			fprintf(stderr, "Invalid Width: %d\n", reg->width);
+			break;
+		}
+
+		free(buf);
+	} else {
+		/* this is a write */
+		if (0 != rc) {
+			fprintf(stderr,
+				"%d: bb_i2c_zip() failed: %d\n", __LINE__, rc);
+
+			if (0 != read)
+				free(buf);
+
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+/*
+  ------------------------------------------------------------------------------
+  usage
+*/
+
+static void
+usage(const char *prog, int exit_code)
+{
+	printf("Usage: %s [-abcdt]\n", prog);
+	printf("  -a --ipaddress  Hostname or IP Address (default localhost)\n"
+	       "  -c --clockpin   Pin (BCM) to use as I2C scl (default %d)\n"
+	       "  -d --datapin    Pin (BCM) to use as I2C sda (default %d)\n"
+	       "  -D --delay      Set Delay\n"
+	       "  -h --help       Help\n"
+	       "  -i --i2caddress I2C address (default %d)\n"
+	       "  -p --port       Port number\n"
+	       "  -s --speed      I2C clock rate (Hz, default %d)\n"
+	       "  -t --test       Run a test loop for given number of times\n"
+	       "  -v --verbose    Spew extra info...\n",
+	       i2c_address, speed, scl, sda);
+
+	exit(1);
 }
 
 /*
@@ -146,72 +272,186 @@ rwrite(int fd, enum trname trn, unsigned char *buffer)
 int
 main(int argc, char *argv[])
 {
-	int fd;
+	int rc;
 	unsigned short magic;
 	unsigned short project;
 	unsigned short version;
-	unsigned int delay;
-	int write = 0;
+	int test = 1;
+	char ip_address[NAME_MAX];
+	char ip_port[NAME_MAX];
+	unsigned long delay;
+	int write_delay = 0;
 
-	if (2 == argc) {
-		write = 1;
+	strcpy(ip_address, "localhost");
+	strcpy(ip_port, "8888");
 
-		delay = (unsigned int)strtoul(argv[1], NULL, 0);
-	}
+	/*
+	  Get the Options
+	*/
 
-	/* Open the I2C Bus */
-	if (0 > (fd = open("/dev/i2c-1", O_RDWR))) {
-		printf("Open Failed: %s\n", strerror(errno));
+	while (1) {
+		static const struct option lopts[] = {
+			{ "ipaddress",  1, 0, 'a' },
+			{ "clockpin",   1, 0, 'c' },
+			{ "datapin",    1, 0, 'd' },
+			{ "delay",      1, 0, 'D' },
+			{ "help",       1, 0, 'h' },
+			{ "i2caddress", 1, 0, 'i' },
+			{ "port",       1, 0, 'p' },
+			{ "speed",      1, 0, 's' },
+			{ "test",       1, 0, 't' },
+			{ "verbose",    1, 0, 'v' },
+			{ NULL, 0, 0, 0 },
+		};
 
-		return EXIT_FAILURE;
-	}
-	
-	if (0 > ioctl(fd, I2C_SLAVE, 8)) {
-		printf("IOCTL Failed: %s\n", strerror(errno));
+		int c;
 
-		return EXIT_FAILURE;
-	}
+		c = getopt_long(argc, argv,
+				"a:c:d:D:hi:p:s:t:v", lopts, NULL);
 
-	/* Verify the Magic Number, and get the Project and Version */
+		if (c == -1)
+			break;
 
-	if (EXIT_SUCCESS != rread(fd, trmagic, &magic) ||
-	    EXIT_SUCCESS != rread(fd, trproject, &project) ||
-	    EXIT_SUCCESS != rread(fd, trversion, &version)) {
-		fprintf(stderr, "Read Failed\n");
-
-		return EXIT_FAILURE;
-	}
-
-	if (0xbacd != magic) {
-		fprintf(stderr, "Bad Magic Number!\n");
-
-		return EXIT_FAILURE;
-	}
-
-	printf("Project: 0x%04x Version: 0x%04x\n", project, version);
-
-	/* Write a new delay value if indicated... */
-
-	if (0 != write) {
-		if (EXIT_SUCCESS != rwrite(fd, trdelay,
-					   (unsigned char *)&delay)) {
-			fprintf(stderr, "Write Failed\n");
-
-			return EXIT_FAILURE;
+		switch (c) {
+		case 'a':
+			strcpy(ip_address, optarg);
+			break;
+		case 'c':
+			scl = strtol(optarg, NULL, 0);
+			break;
+		case 'd':
+			sda = strtol(optarg, NULL, 0);
+			break;
+		case 'D':
+			delay = strtol(optarg, NULL, 0);
+			write_delay = 1;
+			break;
+		case 'h':
+			usage(argv[0], EXIT_SUCCESS);
+			break;
+		case 'i':
+			i2c_address = strtol(optarg, NULL, 0);
+			break;
+		case 'p':
+			strcpy(ip_port, optarg);
+			break;
+		case 's':
+			speed = strtol(optarg, NULL, 0);
+			break;
+		case 't':
+			test = strtol(optarg, NULL, 0);
+			break;
+		case 'v':
+			verbose = 1;
+			break;
+		default:
+			usage(argv[0], EXIT_FAILURE);
+			break;
 		}
 	}
 
-	/* Display the current delay value. */
+	/*
+	  Set up the Socket Connection
+	*/
 
-	if (EXIT_SUCCESS != rread(fd, trdelay, &delay)) {
-		fprintf(stderr, "Read Failed\n");
+	if (0 != verbose)
+		printf("--> Starting pigpio with (%s, %s)\n",
+		       ip_address, ip_port);
+
+	pi = pigpio_start(ip_address, ip_port);
+
+	if (0 > pi) {
+		fprintf(stderr, "pigpio_start() failed: %d\n", pi);
 
 		return EXIT_FAILURE;
 	}
 
-	printf("Delay: %u\n", delay);
+	/*
+	  Open Bit Banged I2C
+	*/
 
-	close(fd);
+	if (0 != verbose)
+		printf("--> Opening pigpio I2C with (, %d, %d, %d)\n",
+		       sda, scl, speed);
 
-	return EXIT_SUCCESS;
+	rc = bb_i2c_open(pi, sda, scl, speed);
+
+	if (0 != rc) {
+		fprintf(stderr, "bb_i2c_open() failed: 0x%x\n", rc);
+		pigpio_stop(pi);
+
+		return EXIT_FAILURE;
+	}
+
+	/*
+	  Catch Signals
+	*/
+
+	signal(SIGHUP, handler);
+	signal(SIGINT, handler);
+	signal(SIGCONT, handler);
+	signal(SIGTERM, handler);
+
+	while (0 < test--) {
+		/*
+		  Verify the Magic Number, and get the Project and Version
+		*/
+
+		if (EXIT_SUCCESS != traccess(pi, trmagic, 1, &magic) ||
+		    EXIT_SUCCESS != traccess(pi, trproject, 1, &project) ||
+		    EXIT_SUCCESS != traccess(pi, trversion, 1, &version)) {
+			fprintf(stderr, "Read Failed\n");
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		if (0xbacd != magic) {
+			fprintf(stderr, "Bad Magic Number: 0x%x\n", magic);
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		printf("Project: 0x%04x Version: 0x%04x\n", project, version);
+
+		/*
+		  Write Delay
+		*/
+
+		if ((0 != write_delay) &&
+		    (EXIT_SUCCESS != traccess(pi, trdelay, 0, &delay))) {
+			fprintf(stderr, "Read Failed\n");
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		/*
+		  Read Delays
+		*/
+
+		if (EXIT_SUCCESS != traccess(pi, trdelay, 1, &delay)) {
+			fprintf(stderr, "Read Failed\n");
+			rc = EXIT_FAILURE;
+			goto exit;
+		}
+
+		printf("Delay is 0x%lx\n", delay);
+	}
+
+	rc = EXIT_SUCCESS;
+
+ exit:
+
+	/*
+	  Close the Bit Banged I2C Interface
+	*/
+
+	bb_i2c_close(pi, sda);
+
+	/*
+	  Shut Down "pigpiod"
+	*/
+
+	pigpio_stop(pi);
+
+	return rc;
 }
