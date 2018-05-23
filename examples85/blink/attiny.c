@@ -128,9 +128,6 @@ i2c_callback(uint8_t input_buffer_length,
 	     uint8_t *output_buffer)
 {
 	int i;
-	static unsigned char dummy1 = 0xd1;
-	static unsigned short dummy2 = 0xd2d2;
-	static unsigned long dummy4 = 0xd4d4d4d4;
 
 	for (i = 0; i < input_buffer_length; ++i) {
 		switch (input_buffer[i]) {
@@ -197,6 +194,8 @@ initialize(void)
 	/* Make both pins low to start. */
 	PORTB |= ~(_BV(PB3) | _BV(PB4));
 
+	delay = 1000;
+
 	return;
 }
 
@@ -208,8 +207,6 @@ initialize(void)
 void
 work(void)
 {
-	delay = 1000;
-	
 	for (;;) {
 		PORTB ^= _BV(PB4);
 		time_delay_ms(delay);
