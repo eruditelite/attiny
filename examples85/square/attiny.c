@@ -1,5 +1,7 @@
 /*
   attiny.c
+
+  Handles a number of things...
 */
 
 #include "attiny.h"		/* Must be first for F_CPU! */
@@ -90,7 +92,11 @@ time_init(void)
 	ticks = 3;
 
 	/* Set up the watchdog timer. */
+#if defined(__AVR_ATtiny84__)
+	WDTCSR = _BV(WDIE);
+#elif defined(__AVR_ATtiny85__)
 	WDTCR = _BV(WDIE);
+#endif
 
 	/* Enable interrupts. */
 	sei();
@@ -240,7 +246,7 @@ void
 work(void)
 {
 	for (;;)
-		usi_twi_check();
+		usi_twi_check(); /* Check for I2C Messages */
 
 	return;
 }
