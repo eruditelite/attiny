@@ -250,7 +250,6 @@ work(void)
 
 	start_ticks = time_get_ticks();
 
-#if 1
 	for (;;) {
 		unsigned long ticks;
 
@@ -260,41 +259,14 @@ work(void)
 		ticks *= time_ms_per_tick();
 
 		for (i = 0; i < 3; ++i) {
-			usi_twi_check();
-
 			if (ticks >= (n[i] * delay[i])) {
-#if 0
-				PORTB ^= _BV(PB0);
 				usi_twi_check();
-				PORTB ^= _BV(PB1);
-				usi_twi_check();
-#endif
-				PORTB ^= _BV(PB2);
-				usi_twi_check();
-				++n[i];
-			}
-		}
-	}
-#else
-	for (;;) {
-		unsigned long ticks;
-
-		usi_twi_check();
-		ticks = time_get_ticks();
-		ticks -= start_ticks;
-		ticks *= time_ms_per_tick();
-
-		for (i = 0; i < 3; ++i) {
-			usi_twi_check();
-			if (ticks >= (n[i] * delay[i])) {
 				PORTB ^= _BV(p[i]);
+				usi_twi_check();
 				++n[i];
 			}
 		}
-
-		usi_twi_check();
 	}
-#endif
 
 	return;
 }

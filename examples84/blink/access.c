@@ -470,8 +470,7 @@ main(int argc, char *argv[])
 			goto exit;
 		}
 
-		printf("Delays are 0x%lx 0x%lx 0x%lx\n",
-		       delay1, delay2, delay3);
+		printf("Delays are %lu %lu %lu\n", delay1, delay2, delay3);
 	}
 
 	rc = EXIT_SUCCESS;
