@@ -116,6 +116,11 @@ time_init(void)
   ==============================================================================
 */
 
+ISR(TIM0_COMPA_vect)
+{
+	usi_twi_check();
+}
+
 /*
   ------------------------------------------------------------------------------
   i2c_callback
@@ -227,6 +232,12 @@ initialize(void)
 	/* Make all pins low to start. */
 	PORTB |= ~(_BV(PB0) | _BV(PB1) | _BV(PB2));
 
+	/* Start Timer/Counter0 to Check for I2C Messages */
+	TCCR0A = _BV(WGM01);
+	TCCR0B = _BV(CS01);
+	OCR0A = 20;
+	TIMSK0 = _BV(OCIE0A);
+
 	return;
 }
 
@@ -253,16 +264,13 @@ work(void)
 	for (;;) {
 		unsigned long ticks;
 
-		usi_twi_check();
 		ticks = time_get_ticks();
 		ticks -= start_ticks;
 		ticks *= time_ms_per_tick();
 
 		for (i = 0; i < 3; ++i) {
 			if (ticks >= (n[i] * delay[i])) {
-				usi_twi_check();
 				PORTB ^= _BV(p[i]);
-				usi_twi_check();
 				++n[i];
 			}
 		}
