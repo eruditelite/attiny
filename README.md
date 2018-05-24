@@ -1,4 +1,4 @@
-# attiny -- a template for ATTiny84/ATTiny85 using Raspberry Pi #
+# attiny -- ATTiny84/ATTiny85 Examples using the Raspberry Pi #
 
 ## Overview ##
 

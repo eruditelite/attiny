@@ -23,24 +23,6 @@
 static unsigned long ticks;	/* rolls over every 2.4 years */
 #endif  /* INCLUDE_TICKS */
 
-/*
-  ------------------------------------------------------------------------------
-  time_delay_ms
-*/
-
-void
-time_delay_ms(unsigned long ms)
-{
-	/* convert ms to us */
-	ms *= 1000;
-
-	while (0 < ms) {
-		usi_twi_check();
-		_delay_us(5);
-		ms -= 5;
-	}
-}
-
 #ifdef INCLUDE_TICKS
 
 /*
@@ -113,6 +95,12 @@ time_init(void)
   ==============================================================================
   ==============================================================================
 */
+
+ISR(TIM0_COMPA_vect)
+{
+	usi_twi_check();
+}
+
 
 /*
   ------------------------------------------------------------------------------
@@ -234,6 +222,12 @@ initialize(void)
 	OCR1A = 127;		/* Count to toggle OC1A */
 	OCR1C = 255;		/* Count to reset Timer/Counter1 */
 
+	/* Start Timer/Counter0 to Check for I2C Messages */
+	TCCR0A = _BV(WGM01);
+	TCCR0B = _BV(CS01);
+	OCR0A = 20;
+	TIMSK = _BV(OCIE0A);
+
 	return;
 }
 
@@ -246,7 +240,7 @@ void
 work(void)
 {
 	for (;;)
-		usi_twi_check(); /* Check for I2C Messages */
+		;
 
 	return;
 }

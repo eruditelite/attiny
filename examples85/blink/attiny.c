@@ -25,24 +25,6 @@ unsigned long delay;
 static unsigned long ticks;	/* rolls over every 2.4 years */
 #endif  /* INCLUDE_TICKS */
 
-/*
-  ------------------------------------------------------------------------------
-  time_delay_ms
-*/
-
-void
-time_delay_ms(unsigned long ms)
-{
-	/* convert ms to us */
-	ms *= 1000;
-
-	while (0 < ms) {
-		usi_twi_check();
-		_delay_us(5);
-		ms -= 5;
-	}
-}
-
 #ifdef INCLUDE_TICKS
 
 /*
@@ -115,6 +97,11 @@ time_init(void)
   ==============================================================================
   ==============================================================================
 */
+
+ISR(TIM0_COMPA_vect)
+{
+	usi_twi_check();
+}
 
 /*
   ------------------------------------------------------------------------------
@@ -194,6 +181,12 @@ initialize(void)
 	/* Make both pins low to start. */
 	PORTB |= ~(_BV(PB3) | _BV(PB4));
 
+	/* Start Timer/Counter0 to Check for I2C Messages */
+	TCCR0A = _BV(WGM01);
+	TCCR0B = _BV(CS01);
+	OCR0A = 20;
+	TIMSK = _BV(OCIE0A);
+
 	delay = 1000;
 
 	return;
@@ -207,9 +200,14 @@ initialize(void)
 void
 work(void)
 {
+	unsigned long left;
+
 	for (;;) {
 		PORTB ^= _BV(PB4);
-		time_delay_ms(delay);
+		left = delay;
+
+		while (0 < left--)
+			_delay_ms(1);
 	}
 
 	return;

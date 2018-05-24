@@ -434,7 +434,7 @@ main(int argc, char *argv[])
 			goto exit;
 		}
 
-		printf("Delay is 0x%lx\n", delay);
+		printf("Delay is %lu\n", delay);
 	}
 
 	rc = EXIT_SUCCESS;

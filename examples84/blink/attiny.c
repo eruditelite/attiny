@@ -11,8 +11,6 @@
 #include <util/delay.h>
 #include <usitwislave.h>
 
-static unsigned long delay[4];
-
 /*
   ==============================================================================
   ==============================================================================
@@ -25,25 +23,12 @@ static unsigned long delay[4];
 static unsigned long ticks;	/* rolls over every 2.4 years */
 #endif  /* INCLUDE_TICKS */
 
-/*
-  ------------------------------------------------------------------------------
-  time_delay_ms
-*/
-
-void
-time_delay_ms(unsigned long ms)
-{
-	/* convert ms to us */
-	ms *= 1000;
-
-	while (0 < ms) {
-		usi_twi_check();
-		_delay_us(5);
-		ms -= 5;
-	}
-}
-
 #ifdef INCLUDE_TICKS
+
+#define NUMBER_OF_INTERVALS 12
+
+static short interval[NUMBER_OF_INTERVALS] = {-1, };
+void (*interval_handler[NUMBER_OF_INTERVALS])(void) = {0, };
 
 /*
   ------------------------------------------------------------------------------
@@ -52,7 +37,14 @@ time_delay_ms(unsigned long ms)
 
 ISR(WDT_vect)
 {
+	int i;
+
 	++ticks;
+
+	for (i = 0; i < NUMBER_OF_INTERVALS; ++i) {
+		if ((0 <= interval[i]) && (0 == (ticks % interval[i])))
+			(interval_handler[i])();
+	}
 }
 
 /*
@@ -68,8 +60,6 @@ time_get_ticks(void)
 
 /*
   ------------------------------------------------------------------------------
-  time_ms_per_tick
-
   At minimum divisor, and 5V, each interrupt should happen at 16 ms.
   As measured with a scope, it seems to be about 18 ms (17.60 ms to
   18.40 ms on the handful of ATTiny85s that I have).
@@ -77,11 +67,8 @@ time_get_ticks(void)
   No idea about temperature.
 */
 
-unsigned long
-time_ms_per_tick(void)
-{
-	return 18;
-}
+#define MS_TO_TICKS(ms) (ms / 18)
+#define TICKS_TO_MS(ticks) (ticks * 18)
 
 /*
   ------------------------------------------------------------------------------
@@ -133,6 +120,9 @@ i2c_callback(uint8_t input_buffer_length,
 	     uint8_t *output_buffer)
 {
 	int i;
+	unsigned long delay;
+
+	cli();
 
 	for (i = 0; i < input_buffer_length; ++i) {
 		switch (input_buffer[i]) {
@@ -155,57 +145,33 @@ i2c_callback(uint8_t input_buffer_length,
 			*output_buffer_length = 2;
 			break;
 		case 0x03:
-			/* Read Delay 1 */
-			output_buffer[0] = delay[0] & 0xff;
-			output_buffer[1] = (delay[0] & 0xff00) >> 8;
-			output_buffer[2] = (delay[0] & 0xff0000) >> 16;
-			output_buffer[3] = (delay[0] & 0xff000000) >> 24;
+		case 0x04:
+		case 0x05:
+			/* Read Delay */
+			delay =	TICKS_TO_MS(interval[(input_buffer[i] - 0x03)]);
+			output_buffer[0] = delay & 0xff;
+			output_buffer[1] = (delay & 0xff00) >> 8;
+			output_buffer[2] = (delay & 0xff0000) >> 16;
+			output_buffer[3] = (delay & 0xff000000) >> 24;
 			*output_buffer_length = 4;
 			break;
 		case 0x83:
-			/* Write Delay 1 */
-			delay[0] =
-				((unsigned long)(input_buffer[4]) << 24) |
-				((unsigned long)(input_buffer[3]) << 16) |
-				((unsigned long)(input_buffer[2]) << 8) |
-				((unsigned long)(input_buffer[1]));
-			break;
-		case 0x04:
-			/* Read Delay 2 */
-			output_buffer[0] = delay[1] & 0xff;
-			output_buffer[1] = (delay[1] & 0xff00) >> 8;
-			output_buffer[2] = (delay[1] & 0xff0000) >> 16;
-			output_buffer[3] = (delay[1] & 0xff000000) >> 24;
-			*output_buffer_length = 4;
-			break;
 		case 0x84:
-			/* Write Delay 2 */
-			delay[1] =
-				((unsigned long)(input_buffer[4]) << 24) |
-				((unsigned long)(input_buffer[3]) << 16) |
-				((unsigned long)(input_buffer[2]) << 8) |
-				((unsigned long)(input_buffer[1]));
-			break;
-		case 0x05:
-			/* Read Delay 3 */
-			output_buffer[0] = delay[2] & 0xff;
-			output_buffer[1] = (delay[2] & 0xff00) >> 8;
-			output_buffer[2] = (delay[2] & 0xff0000) >> 16;
-			output_buffer[3] = (delay[2] & 0xff000000) >> 24;
-			*output_buffer_length = 4;
-			break;
 		case 0x85:
-			/* Write Delay 3 */
-			delay[2] =
-				((unsigned long)(input_buffer[4]) << 24) |
+			/* Write Delay */
+			delay =	((unsigned long)(input_buffer[4]) << 24) |
 				((unsigned long)(input_buffer[3]) << 16) |
 				((unsigned long)(input_buffer[2]) << 8) |
 				((unsigned long)(input_buffer[1]));
+			delay = MS_TO_TICKS(delay);
+			interval[(input_buffer[i] - 0x83)] = delay;
 			break;
 		default:
 			break;
 		}
 	}
+
+	sei();
 
 	return;
 }
@@ -217,6 +183,30 @@ i2c_callback(uint8_t input_buffer_length,
   ==============================================================================
   ==============================================================================
 */
+
+void
+pb0_handler(void)
+{
+	PORTB ^= _BV(PB0);
+
+	return;
+}
+
+void
+pb1_handler(void)
+{
+	PORTB ^= _BV(PB1);
+
+	return;
+}
+
+void
+pb2_handler(void)
+{
+	PORTB ^= _BV(PB2);
+
+	return;
+}
 
 /*
   ------------------------------------------------------------------------------
@@ -238,6 +228,14 @@ initialize(void)
 	OCR0A = 20;
 	TIMSK0 = _BV(OCIE0A);
 
+	/* Add Handlers */
+	interval_handler[0] = pb0_handler;
+	interval[0] = MS_TO_TICKS(1000);
+	interval_handler[1] = pb1_handler;
+	interval[1] = MS_TO_TICKS(1000);
+	interval_handler[2] = pb2_handler;
+	interval[2] = MS_TO_TICKS(1000);
+
 	return;
 }
 
@@ -249,32 +247,8 @@ initialize(void)
 void
 work(void)
 {
-	unsigned long start_ticks;
-	unsigned long n[3];
-	int p[] = {PB0, PB1, PB2};
-	int i;
-
-	for (i = 0; i < 3; ++i) {
-		delay[i] = 1000;
-		n[i] = 1;
-	}
-
-	start_ticks = time_get_ticks();
-
-	for (;;) {
-		unsigned long ticks;
-
-		ticks = time_get_ticks();
-		ticks -= start_ticks;
-		ticks *= time_ms_per_tick();
-
-		for (i = 0; i < 3; ++i) {
-			if (ticks >= (n[i] * delay[i])) {
-				PORTB ^= _BV(p[i]);
-				++n[i];
-			}
-		}
-	}
+	for (;;)
+		;
 
 	return;
 }
