@@ -36,7 +36,7 @@
   Options, Addresses, Etc.
 */
 
-static int speed = 80000;
+static int speed = 20000;
 static int pi = -1;
 static int verbose = 0;
 
@@ -261,7 +261,10 @@ usage(const char *prog, int exit_code)
 	       "  -p --port       Port number\n"
 	       "  -s --speed      I2C clock rate (Hz, default %d)\n"
 	       "  -t --test       Run a test loop for given number of times\n"
-	       "  -v --verbose    Spew extra info...\n",
+	       "  -v --verbose    Spew extra info...\n"
+	       "  -1 --dummy1     Set dummy1\n"
+	       "  -2 --dummy2     Set dummy2\n"
+	       "  -4 --dummy4     Set dummy4\n",
 	       i2c_address, speed, scl, sda);
 
 	exit(1);
@@ -283,8 +286,11 @@ main(int argc, char *argv[])
 	char ip_address[NAME_MAX];
 	char ip_port[NAME_MAX];
 	unsigned char dummy1;
+	int write_dummy1 = 0;
 	unsigned short dummy2;
+	int write_dummy2 = 0;
 	unsigned long dummy4;
+	int write_dummy4 = 0;
 
 	strcpy(ip_address, "localhost");
 	strcpy(ip_port, "8888");
@@ -304,12 +310,16 @@ main(int argc, char *argv[])
 			{ "speed",      1, 0, 's' },
 			{ "test",       1, 0, 't' },
 			{ "verbose",    1, 0, 'v' },
+			{ "dummy1",     1, 0, '1' },
+			{ "dummy2",     1, 0, '2' },
+			{ "dummy4",     1, 0, '4' },
 			{ NULL, 0, 0, 0 },
 		};
 
 		int c;
 
-		c = getopt_long(argc, argv, "a:c:d:hi:p:s:t:v", lopts, NULL);
+		c = getopt_long(argc, argv,
+				"a:c:d:hi:p:s:t:v1:2:4:", lopts, NULL);
 
 		if (c == -1)
 			break;
@@ -341,6 +351,18 @@ main(int argc, char *argv[])
 			break;
 		case 'v':
 			verbose = 1;
+			break;
+		case '1':
+			dummy1 = (unsigned char)strtol(optarg, NULL, 0);
+			write_dummy1 = 1;
+			break;
+		case '2':
+			dummy2 = (unsigned short)strtol(optarg, NULL, 0);
+			write_dummy2 = 1;
+			break;
+		case '4':
+			dummy4 = (unsigned long)strtol(optarg, NULL, 0);
+			write_dummy4 = 1;
 			break;
 		default:
 			usage(argv[0], EXIT_FAILURE);
@@ -412,38 +434,38 @@ main(int argc, char *argv[])
 		printf("Project: 0x%04x Version: 0x%04x\n", project, version);
 
 		/*
-		  Read Dummys
-		*/
-
-		if (EXIT_SUCCESS != traccess(pi, trdummy1, 1, &dummy1) ||
-		    EXIT_SUCCESS != traccess(pi, trdummy2, 1, &dummy2) ||
-		    EXIT_SUCCESS != traccess(pi, trdummy4, 1, &dummy4)) {
-			fprintf(stderr, "Read Failed\n");
-			rc = EXIT_FAILURE;
-			goto exit;
-		}
-
-		printf("dummys are 0x%02x 0x%04x 0x%08lx\n",
-		       dummy1, dummy2, dummy4);
-
-		/*
 		  Write Dummys
 		*/
 
-		dummy1 = ~dummy1;
-		dummy2 = ~dummy2;
-		dummy4 = ~dummy4;
+		if (0 != write_dummy1) {
+			if (EXIT_SUCCESS !=
+			    traccess(pi, trdummy1, 0, &dummy1)) {
+				fprintf(stderr, "Write Failed\n");
+				rc = EXIT_FAILURE;
+				goto exit;
+			}
+		}
 
-		if ((EXIT_SUCCESS != traccess(pi, trdummy1, 0, &dummy1)) ||
-		    (EXIT_SUCCESS != traccess(pi, trdummy2, 0, &dummy2)) ||
-		    (EXIT_SUCCESS != traccess(pi, trdummy4, 0, &dummy4))) {
-			fprintf(stderr, "Write Failed\n");
-			rc = EXIT_FAILURE;
-			goto exit;
+		if (0 != write_dummy2) {
+			if (EXIT_SUCCESS !=
+			    traccess(pi, trdummy2, 0, &dummy2)) {
+				fprintf(stderr, "Write Failed\n");
+				rc = EXIT_FAILURE;
+				goto exit;
+			}
+		}
+
+		if (0 != write_dummy4) {
+			if (EXIT_SUCCESS !=
+			    traccess(pi, trdummy4, 0, &dummy4)) {
+				fprintf(stderr, "Write Failed\n");
+				rc = EXIT_FAILURE;
+				goto exit;
+			}
 		}
 
 		/*
-		  Read Dummys Again
+		  Read Dummys
 		*/
 
 		if (EXIT_SUCCESS != traccess(pi, trdummy1, 1, &dummy1) ||
