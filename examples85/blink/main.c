@@ -20,6 +20,26 @@
 #define PROJECT 0x0002
 #define VERSION 0x0001
 
+unsigned long delay[2];
+
+void
+pb3_handler(void)
+{
+	PORTB ^= _BV(PB3);
+
+	return;
+}
+
+void
+pb4_handler(void)
+{
+	PORTB ^= _BV(PB4);
+
+	return;
+}
+
+void (*handler[2])(void) = {pb3_handler, pb4_handler};
+
 /*
   ------------------------------------------------------------------------------
   i2c_callback
@@ -30,9 +50,8 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 {
 	uint8_t ibi;
 	uint8_t obi = 0;
-	static uint8_t dummy1 = 0x11;
-	static uint16_t dummy2 = 0x2222;
-	static uint32_t dummy4 = 0x44444444;
+	uint8_t di;
+	uint32_t delay_in_ms;
 
 	cli();
 
@@ -54,36 +73,29 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 			ob[obi++] = (VERSION & 0xff00) >> 8;
 			break;
 		case 0x03:
-			/* Return dummy1. */
-			ob[obi++] = dummy1;
+		case 0x04:
+			/* Read delay. */
+			di = (ib[ibi - 1] - 0x03);
+			delay_in_ms = TICKS_TO_MS(delay[di]);
+			ob[obi++] = delay_in_ms & 0xff;
+			ob[obi++] = (delay_in_ms & 0xff00) >> 8;
+			ob[obi++] = (delay_in_ms & 0xff0000) >> 16;
+			ob[obi++] = (delay_in_ms & 0xff000000) >> 24;
 			break;
 		case 0x83:
-			/* Set dummy1. */
-			dummy1 = ib[ibi++];
-			break;
-		case 0x04:
-			/* Return dummy2. */
-			ob[obi++] = dummy2 & 0xff;
-			ob[obi++] = (dummy2 & 0xff00) >> 8;
-			break;
 		case 0x84:
-			/* Set dummy2. */
-			dummy2 = ((unsigned short)(ib[ibi++]) << 8);
-			dummy2 |= ((unsigned short)(ib[ibi++]));
-			break;
-		case 0x05:
-			/* Return dummy4. */
-			ob[obi++] = dummy4 & 0xff;
-			ob[obi++] = (dummy4 & 0xff00) >> 8;
-			ob[obi++] = (dummy4 & 0xff0000) >> 16;
-			ob[obi++] = (dummy4 & 0xff000000) >> 24;
-			break;
-		case 0x85:
-			/* Set dummy4. */
-			dummy4 = ((unsigned long)(ib[ibi++]) << 24);
-			dummy4 |= ((unsigned long)(ib[ibi++]) << 16);
-			dummy4 |= ((unsigned long)(ib[ibi++]) << 8);
-			dummy4 |= ((unsigned long)(ib[ibi++]));
+			/* Set the delay. */
+			di = (ib[ibi - 1] - 0x83);
+			delay_in_ms = ((unsigned long)(ib[ibi++]));
+			delay_in_ms |= ((unsigned long)(ib[ibi++]) << 8);
+			delay_in_ms |= ((unsigned long)(ib[ibi++]) << 16);
+			delay_in_ms |= ((unsigned long)(ib[ibi++]) << 24);
+			delay[di] = MS_TO_TICKS(delay_in_ms);
+
+			if (0 == delay[di])
+				delay[di] = 1;
+
+			set_callback(di, 1, delay[di], handler[di]);
 			break;
 		default:
 			break;
@@ -108,6 +120,21 @@ main(void)
 	/*
 	  Initialize the System
 	*/
+
+ 	/* Set pins 3 and 4 to output. */
+	DDRB |= (_BV(PB3) | _BV(PB4));
+
+	/* Make both pins low to start. */
+	PORTB |= ~(_BV(PB3) | _BV(PB4));
+
+	/*
+	  Add Handlers
+	*/
+
+	delay[0] = MS_TO_TICKS(1000);
+	set_callback(0, 1, delay[0], handler[0]);
+	delay[1] = MS_TO_TICKS(1000);
+	set_callback(1, 1, delay[1], handler[1]);
 
 	/*
 	  Start the Tick

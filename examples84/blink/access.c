@@ -36,7 +36,7 @@
   Options, Addresses, Etc.
 */
 
-static int speed = 10000;
+static int speed = 20000;
 static int pi = -1;
 static int verbose = 0;
 

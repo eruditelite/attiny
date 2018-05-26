@@ -36,7 +36,7 @@
   Options, Addresses, Etc.
 */
 
-static int speed = 80000;
+static int speed = 20000;
 static int pi = -1;
 static int verbose = 0;
 
@@ -73,10 +73,10 @@ struct tr trs[] = {
 	{"magic",   trmagic, 2, 1},
 	{"project", trproject, 2, 1},
 	{"version", trversion, 2, 1},
-	{"pllcsr",  trpllcsr, 1, 0},
-	{"tccr1",   trtccr1, 1, 0},
-	{"ocr1a",   trocr1a, 1, 0},
-	{"ocr1c",   trocr1c, 1, 0}
+	{"pllcsr", trpllcsr, 1, 0},
+	{"tccr1", trtccr1, 1, 0},
+	{"ocr1a", trocr1a, 1, 0},
+	{"ocr1c", trocr1c, 1, 0}
 };
 
 /*

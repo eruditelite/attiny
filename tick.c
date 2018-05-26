@@ -12,8 +12,8 @@
 static uint32_t tick;
 static uint8_t mode;
 
-static int16_t callback[NUMBER_OF_CALLBACKS] = {-1, };
-static void (*callback_handler[NUMBER_OF_CALLBACKS])(void) = {0, };
+static int16_t _callback_ticks[NUMBER_OF_CALLBACKS];
+static void (*_callback[NUMBER_OF_CALLBACKS])(void);
 
 /*
   ------------------------------------------------------------------------------
@@ -85,30 +85,26 @@ ms_per_tick(void)
 
 /*
   ------------------------------------------------------------------------------
-  add_callback
+  set_callback
 */
 
 int
-add_callback(uint8_t periodic, uint16_t ticks, void (*callback_fn)(void))
+set_callback(uint8_t slot, uint8_t periodic, uint16_t ticks,
+	     void (*callback_fn)(void))
 {
-	int i;
-
 	cli();
 
-	/* Find first unused callback entry. */
-	for (i = 0; i < NUMBER_OF_CALLBACKS; ++i)
-		if (-1 == callback[i])
-			break;
+	if (NUMBER_OF_CALLBACKS <= slot)
+		return -1;	/* Bad Input! */
 
-	if (NUMBER_OF_CALLBACKS == i)
-		return -1;	/* No callbacks available. */
+	if (0 != periodic) {
+		_callback_ticks[slot] = ticks;
+	} else {
+		_callback_ticks[slot] = get_tick() + ticks;
+		_callback_ticks[slot] |= 0x8000;
+	}
 
-	callback[i] = get_tick() + ticks;
-
-	if (0 != periodic)
-		callback[i] |= 0x8000;
-
-	callback_handler[i] = callback_fn;
+	_callback[slot] = callback_fn;
 
 	sei();
 
@@ -124,23 +120,22 @@ ISR(WDT_vect)
 {
 	int i;
 
-	if (UINT32_MAX == tick)
-		tick = 0;
-	else
-		++tick;
+	++tick;
 
 	for (i = 0; i < NUMBER_OF_CALLBACKS; ++i) {
-		if (0 <= callback[i]) {
-			if (0 != (0x8000 & callback[i])) {
+		if (0 <= _callback_ticks[i]) {
+			if (0 != (0x8000 & _callback_ticks[i])) {
 				/* one shot */
-				if (tick >= (callback[i] & ~0x8000)) {
-					(callback_handler[i])();
-					callback[i] = -1;
-					callback_handler[i] = NULL;
+				if (tick >= (_callback_ticks[i] & ~0x8000)) {
+					(_callback[i])();
+					_callback_ticks[i] = -1;
+					_callback[i] = NULL;
 				}
 			} else {
-				if (0 == (tick % callback[i]))
-					(callback_handler[i])();
+				/* periodic */
+				if (0 == (tick % _callback_ticks[i])) {
+					(_callback[i])();
+				}
 			}
 		}
 	}

@@ -89,17 +89,19 @@ endef
 ## Build options and Targets ##
 ###############################
 
-USITWI = ../../../usitwislave
 ATTINY = ../..
 AVR_CC = avr-gcc
-AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY) -I$(USITWI)
+AVR_AR = avr-ar
+AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY)
 AVR_OBJ2HEX = avr-objcopy
 AVRDUDE = avrdude
 AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P $(SPIDEV) -c linuxspi -b 10000
+DEPS =
+OBJS =
 
 .PHONY : all cscope install fuse reset clean
 
-all : attiny attiny.hex access
+all : $(ATTINY)/libattiny.a attiny attiny.hex access
 
 access : access.c
 	gcc -Wall -pthread -DAVRTARGET=$(AVRTARGET) -o $@ $< -lpigpiod_if2 -lrt
@@ -107,20 +109,32 @@ access : access.c
 attiny.hex : attiny
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
 
-attiny : main.o attiny.o usitwislave.o
+attiny : main.o $(ATTINY)/libattiny.a
 	$(AVR_CC) $(AVR_CFLAGS) -o $@ $^
 	avr-size -C --mcu $(MCU) $@
 
-usitwislave.o : $(USITWI)/usitwislave.c
+main.o : main.c
+	$(AVR_CC) $(AVR_CFLAGS) -MM -c -o main.d $<
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-main.o : $(ATTINY)/main.c
+## libattiny.a
+
+$(ATTINY)/libattiny.a : $(ATTINY)/i2c.o $(ATTINY)/tick.o
+	$(AVR_AR) -cr $@ $^
+
+$(ATTINY)/i2c.o : $(ATTINY)/i2c.c
+	$(AVR_CC) $(AVR_CFLAGS) -MM -c -o $(ATTINY)/i2c.d $<
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-attiny.o : attiny.c
+$(ATTINY)/tick.o : $(ATTINY)/tick.c
+	$(AVR_CC) $(AVR_CFLAGS) -MM -c -o $(ATTINY)/tick.d $<
 	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
 
-cscope : $(ATTINY)/main.c attiny.c $(USITWI)/usitwislave.c
+DEPS += $(ATTINY)/i2c.d $(ATTINY)/tick.d
+
+## convinience targets...
+
+cscope : main.c $(ATTINY)/i2c.c $(ATTINY)i2c.h $(ATTINY)/tick.c $(ATTINY)tick.h
 	$(AVR_CC) $(AVR_CFLAGS) -M $^ \
 		| sed -e 's/[\\ ]/\n/g' \
 		| sed -e '/^$$/d' -e '/\.o:[ \t]*$$/d' \
@@ -148,4 +162,6 @@ reset :
 	@$(call SWITCH_PI_TO_I2C)
 
 clean :
-	@rm -f *~ *.hex *.d *.o *.vcd attiny cscope.* access
+	@rm -f *~ *.d *.o *.a *.vcd cscope.* attiny attiny.hex access
+
+-include $(DEPS)

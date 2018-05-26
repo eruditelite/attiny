@@ -32,12 +32,19 @@
 
 #include <stddef.h>
 
-int start_tick(uint8_t mode);
+int start_tick(uint8_t);
 uint32_t get_tick(void);
 uint16_t ms_per_tick();
 
-#define NUMBER_OF_CALLBACKS 4
+#define MS_TO_TICKS(ms) (ms / ms_per_tick())
+#define TICKS_TO_MS(ticks) (ticks * ms_per_tick())
 
-int add_callback(uint8_t, uint16_t, void (*)(void));
+#if defined(__AVR_ATtiny84__)
+#define NUMBER_OF_CALLBACKS 8
+#elif defined(__AVR_ATtiny85__)
+#define NUMBER_OF_CALLBACKS 3
+#endif
+
+int set_callback(uint8_t, uint8_t, uint16_t, void (*)(void));
 
 #endif	/* TICK_H_ */

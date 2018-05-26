@@ -200,13 +200,9 @@ ISR(USI_START_vect)
 	USIDR = 0xff;
 
 	USICR =
-		/*
-		  enable start condition interrupt
-		*/
+		/* enable start condition interrupt */
 		(1 << USISIE) |
-		/*
-		  enable overflow interrupt
-		*/
+		/* enable overflow interrupt */
 		(1 << USIOIE) |
 		/*
 		  set usi in two-wire mode, enable bit counter
@@ -218,9 +214,7 @@ ISR(USI_START_vect)
 		  edge, 4-bit counter source = external, both edges
 		*/
 		(1 << USICS1) | (0 << USICS0) | (0 << USICLK) |
-		/*
-		  don't toggle clock-port pin
-		*/
+		/* don't toggle clock-port pin */
 		(0 << USITC);
 
 	USISR =
@@ -376,27 +370,6 @@ again:
 }
 
 void
-usi_twi_slave(uint8_t slave_address_in,
-	      void (*data_callback_in)(uint8_t input_buffer_length,
-				       const uint8_t *input_buffer,
-				       uint8_t *output_buffer_length,
-				       uint8_t *output_buffer))
-{
-	slave_address = slave_address_in;
-	data_callback = data_callback_in;
-
-	input_buffer_length = 0;
-	output_buffer_length = 0;
-	output_buffer_current = 0;
-	ss_state = ss_state_before_start;
-
-	twi_init();
-	sei();
-
-	return;
-}
-
-void
 usi_twi_check(void)
 {
 	int call_datacallback = 0;
@@ -434,64 +407,29 @@ usi_twi_check(void)
 
 /*
   ------------------------------------------------------------------------------
-  i2c_callback
-*/
-
-void __attribute__((weak))
-i2c_callback(uint8_t input_buffer_length,
-	     const uint8_t *input_buffer,
-	     uint8_t *output_buffer_length,
-	     uint8_t *output_buffer)
-{
-	int i;
-
-	cli();
-
-	for (i = 0; i < input_buffer_length; ++i) {
-		switch (input_buffer[i]) {
-		case 0x00:
-			/* Return the magic number, 0xbacd. */
-			output_buffer[0] = MAGIC & 0xff;
-			output_buffer[1] = (MAGIC & 0xff00) >> 8;
-			*output_buffer_length = 2;
-			break;
-		case 0x01:
-			/* Return the project. */
-			output_buffer[0] = PROJECT & 0xff;
-			output_buffer[1] = (PROJECT & 0xff00) >> 8;
-			*output_buffer_length = 2;
-			break;
-		case 0x02:
-			/* Return the version. */
-			output_buffer[0] = VERSION & 0xff;
-			output_buffer[1] = (VERSION & 0xff00) >> 8;
-			*output_buffer_length = 2;
-			break;
-		default:
-			break;
-		}
-	}
-
-	sei();
-
-	return;
-}
-
-/*
-  ------------------------------------------------------------------------------
   start_i2c
 */
 
 int
-start_i2c(uint8_t address, uint8_t ocr0a)
+start_i2c(uint8_t address, uint8_t ocr0a,
+	  void (*cb)(uint8_t, const uint8_t *, uint8_t *, uint8_t *))
 {
-	/* Initialize USITWISLAVE */
-	usi_twi_slave(I2C_ADDRESS, i2c_callback);
-	
+	slave_address = address;
+	data_callback = cb;
+
+	input_buffer_length = 0;
+	output_buffer_length = 0;
+	output_buffer_current = 0;
+	ss_state = ss_state_before_start;
+
+	twi_init();
+	sei();
+
 	/* Start Timer/Counter0 to Check for I2C Messages */
+
 	TCCR0A = _BV(WGM01);
 	TCCR0B = _BV(CS01);
-	OCR0A = 20;
+	OCR0A = ocr0a;
 #if defined(__AVR_ATtiny84__)
 	TIMSK0 = _BV(OCIE0A);
 #elif defined(__AVR_ATtiny85__)

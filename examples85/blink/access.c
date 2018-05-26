@@ -36,7 +36,7 @@
   Options, Addresses, Etc.
 */
 
-static int speed = 80000;
+static int speed = 20000;
 static int pi = -1;
 static int verbose = 0;
 
@@ -63,14 +63,16 @@ enum trname {
 	trmagic = 0,
 	trproject = 1,
 	trversion = 2,
-	trdelay = 3
+	trdelay1 = 3,
+	trdelay2 = 4
 };
 
 struct tr trs[] = {
 	{"magic",   trmagic, 2, 1},
 	{"project", trproject, 2, 1},
 	{"version", trversion, 2, 1},
-	{"delay",   trdelay, 4, 0}
+	{"delay1", trdelay1, 4, 0},
+	{"delay2", trdelay2, 4, 0}
 };
 
 /*
@@ -252,7 +254,8 @@ usage(const char *prog, int exit_code)
 	printf("  -a --ipaddress  Hostname or IP Address (default localhost)\n"
 	       "  -c --clockpin   Pin (BCM) to use as I2C scl (default %d)\n"
 	       "  -d --datapin    Pin (BCM) to use as I2C sda (default %d)\n"
-	       "  -D --delay      Set Delay\n"
+	       "  -1 --delay1     Set Delay 1\n"
+	       "  -2 --delay2     Set Delay 2\n"
 	       "  -h --help       Help\n"
 	       "  -i --i2caddress I2C address (default %d)\n"
 	       "  -p --port       Port number\n"
@@ -279,8 +282,10 @@ main(int argc, char *argv[])
 	int test = 1;
 	char ip_address[NAME_MAX];
 	char ip_port[NAME_MAX];
-	unsigned long delay;
-	int write_delay = 0;
+	unsigned long delay1;
+	int write_delay1 = 0;
+	unsigned long delay2;
+	int write_delay2 = 0;
 
 	strcpy(ip_address, "localhost");
 	strcpy(ip_port, "8888");
@@ -294,9 +299,10 @@ main(int argc, char *argv[])
 			{ "ipaddress",  1, 0, 'a' },
 			{ "clockpin",   1, 0, 'c' },
 			{ "datapin",    1, 0, 'd' },
-			{ "delay",      1, 0, 'D' },
+			{ "delay1",     1, 0, '1' },
+			{ "delay2",     1, 0, '2' },
 			{ "help",       1, 0, 'h' },
-			{ "i2caddress", 1, 0, 'i' },
+			{ "i2caddress", 1, 0, 'p' },
 			{ "port",       1, 0, 'p' },
 			{ "speed",      1, 0, 's' },
 			{ "test",       1, 0, 't' },
@@ -307,7 +313,7 @@ main(int argc, char *argv[])
 		int c;
 
 		c = getopt_long(argc, argv,
-				"a:c:d:D:hi:p:s:t:v", lopts, NULL);
+				"a:c:d:1:2:hi:p:s:t:v1:2:4:", lopts, NULL);
 
 		if (c == -1)
 			break;
@@ -322,9 +328,13 @@ main(int argc, char *argv[])
 		case 'd':
 			sda = strtol(optarg, NULL, 0);
 			break;
-		case 'D':
-			delay = strtol(optarg, NULL, 0);
-			write_delay = 1;
+		case '1':
+			delay1 = strtol(optarg, NULL, 0);
+			write_delay1 = 1;
+			break;
+		case '2':
+			delay2 = strtol(optarg, NULL, 0);
+			write_delay2 = 1;
 			break;
 		case 'h':
 			usage(argv[0], EXIT_SUCCESS);
@@ -417,24 +427,32 @@ main(int argc, char *argv[])
 		  Write Delay
 		*/
 
-		if ((0 != write_delay) &&
-		    (EXIT_SUCCESS != traccess(pi, trdelay, 0, &delay))) {
-			fprintf(stderr, "Read Failed\n");
-			rc = EXIT_FAILURE;
-			goto exit;
+		if ((0 != write_delay1) &&
+		    (EXIT_SUCCESS != traccess(pi, trdelay1, 0, &delay1))) {
+			    fprintf(stderr, "Write Failed\n");
+			    rc = EXIT_FAILURE;
+			    goto exit;
+		}
+
+		if ((0 != write_delay2) &&
+		    (EXIT_SUCCESS != traccess(pi, trdelay2, 0, &delay2))) {
+			    fprintf(stderr, "Write Failed\n");
+			    rc = EXIT_FAILURE;
+			    goto exit;
 		}
 
 		/*
 		  Read Delays
 		*/
 
-		if (EXIT_SUCCESS != traccess(pi, trdelay, 1, &delay)) {
+		if ((EXIT_SUCCESS != traccess(pi, trdelay1, 1, &delay1)) ||
+		    (EXIT_SUCCESS != traccess(pi, trdelay2, 1, &delay2))) {
 			fprintf(stderr, "Read Failed\n");
 			rc = EXIT_FAILURE;
 			goto exit;
 		}
 
-		printf("Delay is %lu\n", delay);
+		printf("Delays are %lu %lu\n", delay1, delay2);
 	}
 
 	rc = EXIT_SUCCESS;

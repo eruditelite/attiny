@@ -30,9 +30,6 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 {
 	uint8_t ibi;
 	uint8_t obi = 0;
-	static uint8_t dummy1 = 0x11;
-	static uint16_t dummy2 = 0x2222;
-	static uint32_t dummy4 = 0x44444444;
 
 	cli();
 
@@ -54,36 +51,28 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 			ob[obi++] = (VERSION & 0xff00) >> 8;
 			break;
 		case 0x03:
-			/* Return dummy1. */
-			ob[obi++] = dummy1;
+			ob[obi++] = PLLCSR;
 			break;
 		case 0x83:
-			/* Set dummy1. */
-			dummy1 = ib[ibi++];
+			PLLCSR = ib[ibi++];
 			break;
 		case 0x04:
-			/* Return dummy2. */
-			ob[obi++] = dummy2 & 0xff;
-			ob[obi++] = (dummy2 & 0xff00) >> 8;
+			ob[obi++] = TCCR1;
 			break;
 		case 0x84:
-			/* Set dummy2. */
-			dummy2 = ((unsigned short)(ib[ibi++]) << 8);
-			dummy2 |= ((unsigned short)(ib[ibi++]));
+			TCCR1 = ib[ibi++];
 			break;
 		case 0x05:
-			/* Return dummy4. */
-			ob[obi++] = dummy4 & 0xff;
-			ob[obi++] = (dummy4 & 0xff00) >> 8;
-			ob[obi++] = (dummy4 & 0xff0000) >> 16;
-			ob[obi++] = (dummy4 & 0xff000000) >> 24;
+			ob[obi++] = OCR1A;
 			break;
 		case 0x85:
-			/* Set dummy4. */
-			dummy4 = ((unsigned long)(ib[ibi++]) << 24);
-			dummy4 |= ((unsigned long)(ib[ibi++]) << 16);
-			dummy4 |= ((unsigned long)(ib[ibi++]) << 8);
-			dummy4 |= ((unsigned long)(ib[ibi++]));
+			OCR1A = ib[ibi++];
+			break;
+		case 0x06:
+			ob[obi++] = OCR1C;
+			break;
+		case 0x86:
+			OCR1C = ib[ibi++];
 			break;
 		default:
 			break;
@@ -108,6 +97,29 @@ main(void)
 	/*
 	  Initialize the System
 	*/
+
+	/* Make pin 1 an output. */
+	DDRB |= _BV(PB1);
+
+	/* Enable high speed mode! */
+	PLLCSR |= _BV(PLLE);
+	PLLCSR |= _BV(PCKE);
+
+	TCCR1 =
+		/* Reset Timer/Counter1 after a compare match with OCR1C */
+		_BV(CTC1) |
+		/* Enable PWM Mode */
+		_BV(PWM1A) |
+		/* Timer/Counter1 is PCK/CK divided by 64 */
+		_BV(CS11) |
+		/* Toggle OC1A */
+		_BV(COM1A0);
+
+	/* PWM, Phase Correct */
+	TCCR0A = _BV(WGM01);
+
+	OCR1A = 127;		/* Count to toggle OC1A */
+	OCR1C = 255;		/* Count to reset Timer/Counter1 */
 
 	/*
 	  Start the Tick
