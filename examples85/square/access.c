@@ -65,8 +65,7 @@ enum trname {
 	trversion = 2,
 	trpllcsr = 3,
 	trtccr1 = 4,
-	trocr1a = 5,
-	trocr1c = 6
+	trocr1a = 5
 };
 
 struct tr trs[] = {
@@ -75,8 +74,7 @@ struct tr trs[] = {
 	{"version", trversion, 2, 1},
 	{"pllcsr", trpllcsr, 1, 0},
 	{"tccr1", trtccr1, 1, 0},
-	{"ocr1a", trocr1a, 1, 0},
-	{"ocr1c", trocr1c, 1, 0}
+	{"ocr1a", trocr1a, 1, 0}
 };
 
 /*
@@ -258,13 +256,14 @@ usage(const char *prog, int exit_code)
 	printf("  -a --ipaddress  Hostname or IP Address (default localhost)\n"
 	       "  -A --ocr1a      Set the OCR1A register to the given value\n"
 	       "  -c --clockpin   Pin (BCM) to use as I2C scl (default %d)\n"
-	       "  -C --ocr1c      Set the OCR1C register to the given value\n"
 	       "  -d --datapin    Pin (BCM) to use as I2C sda (default %d)\n"
 	       "  -h --help       Help\n"
 	       "  -i --i2caddress I2C address (default %d)\n"
 	       "  -p --port       Port number\n"
+	       "  -P --pllcsr     Set the PLLCSR register to the given value\n"
 	       "  -s --speed      I2C clock rate (Hz, default %d)\n"
-	       "  -t --test       Run a test loop for given number of times\n"
+	       "  -t --test       Run a test loop for given number of times\n"	
+	       "  -T --tccr1      Set the TCCR1 register to the given value\n"
 	       "  -v --verbose    Spew extra info...\n",
 	       i2c_address, speed, scl, sda);
 
@@ -287,11 +286,11 @@ main(int argc, char *argv[])
 	char ip_address[NAME_MAX];
 	char ip_port[NAME_MAX];
 	unsigned char pllcsr;
+	int write_pllcsr = 0;
 	unsigned char tccr1;
+	int write_tccr1 = 0;
 	unsigned char ocr1a;
 	int write_ocr1a = 0;
-	unsigned char ocr1c;
-	int write_ocr1c = 0;
 
 	strcpy(ip_address, "localhost");
 	strcpy(ip_port, "8888");
@@ -305,20 +304,21 @@ main(int argc, char *argv[])
 			{ "ipaddress",  1, 0, 'a' },
 			{ "ocr1a",      1, 0, 'A' },
 			{ "clockpin",   1, 0, 'c' },
-			{ "ocr1c",      1, 0, 'C' },
 			{ "datapin",    1, 0, 'd' },
 			{ "help",       1, 0, 'h' },
 			{ "i2caddress", 1, 0, 'p' },
 			{ "port",       1, 0, 'p' },
+			{ "pllcsr",     1, 0, 'P' },
 			{ "speed",      1, 0, 's' },
 			{ "test",       1, 0, 't' },
+			{ "tccr1",      1, 0, 'T' },
 			{ "verbose",    1, 0, 'v' },
 			{ NULL, 0, 0, 0 },
 		};
 
 		int c;
 
-		c = getopt_long(argc, argv, "a:A:c:C:d:hi:p:s:t:v",
+		c = getopt_long(argc, argv, "a:A:c:d:hi:p:P:s:t:T:v",
 				lopts, NULL);
 
 		if (c == -1)
@@ -334,10 +334,6 @@ main(int argc, char *argv[])
 			break;
 		case 'c':
 			scl = strtol(optarg, NULL, 0);
-			write_ocr1c = 1;
-			break;
-		case 'C':
-			ocr1c = (unsigned char)strtoul(optarg, NULL, 0);
 			break;
 		case 'd':
 			sda = strtol(optarg, NULL, 0);
@@ -351,11 +347,19 @@ main(int argc, char *argv[])
 		case 'p':
 			strcpy(ip_port, optarg);
 			break;
+		case 'P':
+			pllcsr = (unsigned char)strtoul(optarg, NULL, 0);
+			write_pllcsr = 1;
+			break;
 		case 's':
 			speed = strtol(optarg, NULL, 0);
 			break;
 		case 't':
 			test = strtol(optarg, NULL, 0);
+			break;
+		case 'T':
+			tccr1 = (unsigned char)strtoul(optarg, NULL, 0);
+			write_tccr1 = 1;
 			break;
 		case 'v':
 			verbose = 1;
@@ -430,19 +434,30 @@ main(int argc, char *argv[])
 		printf("Project: 0x%04x Version: 0x%04x\n", project, version);
 
 		/*
-		  Write OCR1A and OCR1C
+		  Write as Directed
 		*/
 
-		if (0 != write_ocr1a) {
-			if (EXIT_SUCCESS != traccess(pi, trocr1a, 0, &ocr1a)) {
+		if (0 != write_pllcsr) {
+			if (EXIT_SUCCESS !=
+			    traccess(pi, trpllcsr, 0, &pllcsr)) {
 				fprintf(stderr, "Read Failed\n");
 				rc = EXIT_FAILURE;
 				goto exit;
 			}
 		}
 
-		if (0 != write_ocr1c) {
-			if (EXIT_SUCCESS != traccess(pi, trocr1c, 0, &ocr1c)) {
+		if (0 != write_tccr1) {
+			if (EXIT_SUCCESS !=
+			    traccess(pi, trtccr1, 0, &tccr1)) {
+				fprintf(stderr, "Read Failed\n");
+				rc = EXIT_FAILURE;
+				goto exit;
+			}
+		}
+
+		if (0 != write_ocr1a) {
+			if (EXIT_SUCCESS !=
+			    traccess(pi, trocr1a, 0, &ocr1a)) {
 				fprintf(stderr, "Read Failed\n");
 				rc = EXIT_FAILURE;
 				goto exit;
@@ -455,15 +470,14 @@ main(int argc, char *argv[])
 
 		if (EXIT_SUCCESS != traccess(pi, trpllcsr, 1, &pllcsr) ||
 		    EXIT_SUCCESS != traccess(pi, trtccr1, 1, &tccr1) ||
-		    EXIT_SUCCESS != traccess(pi, trocr1a, 1, &ocr1a) ||
-		    EXIT_SUCCESS != traccess(pi, trocr1c, 1, &ocr1c)) {
+		    EXIT_SUCCESS != traccess(pi, trocr1a, 1, &ocr1a)) {
 			fprintf(stderr, "Read Failed\n");
 			rc = EXIT_FAILURE;
 			goto exit;
 		}
 
-		printf("PLLCSR=0x%x TCCR1=0x%x OCR1A=0x%x OCR1C=0x%x\n",
-		       pllcsr, tccr1, ocr1a, ocr1c);
+		printf("PLLCSR=0x%x TCCR1=0x%x OCR1A=0x%x\n",
+		       pllcsr, tccr1, ocr1a);
 	}
 
 	rc = EXIT_SUCCESS;
