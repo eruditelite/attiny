@@ -17,7 +17,7 @@
 #endif
 
 #define MAGIC   0xbacd
-#define PROJECT 0x0002
+#define PROJECT 0x0003
 #define VERSION 0x0001
 
 static uint32_t delay[3];
