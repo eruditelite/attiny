@@ -21,6 +21,15 @@
 #define VERSION 0x0001
 
 /*
+  Check for I2C Messages...
+*/
+
+ISR(TIM0_COMPA_vect)
+{
+	usi_twi_check();
+}
+
+/*
   ------------------------------------------------------------------------------
   i2c_callback
 */
@@ -115,10 +124,15 @@ main(void)
 	start_tick(0);
 
 	/*
-	  Start I2C
+	  Start I2C - Use Timer0 to Check for I2C Messages
 	*/
 
-	start_i2c(I2C_ADDRESS, 20, i2c_callback);
+	start_i2c(I2C_ADDRESS, i2c_callback);
+
+	TCCR0A = _BV(WGM01);
+	TCCR0B = _BV(CS01);
+	OCR0A = 20;
+	TIMSK = _BV(OCIE0A);
 
 	/* Then... */
 	for (;;)

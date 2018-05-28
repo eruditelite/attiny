@@ -411,7 +411,7 @@ usi_twi_check(void)
 */
 
 int
-start_i2c(uint8_t address, uint8_t ocr0a,
+start_i2c(uint8_t address,
 	  void (*cb)(uint8_t, const uint8_t *, uint8_t *, uint8_t *))
 {
 	slave_address = address;
@@ -425,26 +425,5 @@ start_i2c(uint8_t address, uint8_t ocr0a,
 	twi_init();
 	sei();
 
-	/* Start Timer/Counter0 to Check for I2C Messages */
-
-	TCCR0A = _BV(WGM01);
-	TCCR0B = _BV(CS01);
-	OCR0A = ocr0a;
-#if defined(__AVR_ATtiny84__)
-	TIMSK0 = _BV(OCIE0A);
-#elif defined(__AVR_ATtiny85__)
-	TIMSK = _BV(OCIE0A);
-#endif
-
 	return 0;
-}
-
-/*
-  ------------------------------------------------------------------------------
-  Interrupt Handler
-*/
-
-ISR(TIM0_COMPA_vect)
-{
-	usi_twi_check();
 }

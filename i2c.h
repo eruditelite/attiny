@@ -29,7 +29,7 @@
 
 #define USI_TWI_BUFFER_SIZE 32
 
-int start_i2c(uint8_t, uint8_t,
+int start_i2c(uint8_t,
 	      void (*)(uint8_t, const uint8_t *, uint8_t *, uint8_t *));
 void usi_twi_check(void);
 
