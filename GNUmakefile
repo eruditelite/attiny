@@ -162,6 +162,6 @@ reset :
 	@$(call SWITCH_PI_TO_I2C)
 
 clean :
-	@rm -f *~ *.d *.o *.a *.vcd cscope.* attiny attiny.hex access
+	@rm -f *~ *.d *.o *.a *.vcd cscope.* attiny attiny.hex access wavegen
 
 -include $(DEPS)
