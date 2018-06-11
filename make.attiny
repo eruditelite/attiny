@@ -1,0 +1,110 @@
+################################################################################
+#
+# make.attiny
+#
+# Basic targets.
+#
+################################################################################
+
+###############################
+## Build options and Targets ##
+###############################
+
+AVR_CC = avr-gcc
+AVR_AR = avr-ar
+AVR_CFLAGS = -Os -Wall -mcall-prologues -mmcu=$(MCU) -I$(ATTINY)
+AVR_OBJ2HEX = avr-objcopy
+AVRDUDE = avrdude
+AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P $(SPIDEV) -c linuxspi -b 10000
+DEPS =
+SRC = main.c $(ATTINY)/i2c.c $(ATTINY)/i2c.h $(ATTINY)/tick.c $(ATTINY)/tick.h
+
+.PHONY : all cscope install fuse reset clean
+
+all :
+
+flash.hex : attiny.elf
+	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
+
+attiny.elf : main.o libattiny.a
+	$(AVR_CC) $(AVR_CFLAGS) -o $@ $^
+	avr-size -C --mcu $(MCU) $@
+
+main.o : main.c
+	$(AVR_CC) $(AVR_CFLAGS) -MM -c -o main.d $<
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
+
+DEPS += main.d
+
+access : access.c
+	gcc -Wall -pthread -MM -o access.d $<
+	gcc -Wall -pthread -o $@ $< -lpigpiod_if2 -lrt
+
+DEPS += access.d
+
+wavegen : $(ATTINY)/wavegen.c
+	gcc -Wall -MM -o wavegen.d $<
+	gcc -Wall -o $@ $< -lm
+
+DEPS += access.d
+
+## libattiny.a
+
+libattiny.a : i2c.o tick.o
+	$(AVR_AR) -cr $@ $^
+
+i2c.o : $(ATTINY)/i2c.c
+	$(AVR_CC) $(AVR_CFLAGS) -MM -c -o i2c.d $<
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
+
+tick.o : $(ATTINY)/tick.c
+	$(AVR_CC) $(AVR_CFLAGS) -MM -c -o tick.d $<
+	$(AVR_CC) $(AVR_CFLAGS) -c -o $@ $<
+
+DEPS += i2c.d tick.d
+
+## convinience targets...
+
+cscope : $(SRC)
+	$(AVR_CC) $(AVR_CFLAGS) -M $^ \
+		| sed -e 's/[\\ ]/\n/g' \
+		| sed -e '/^$$/d' -e '/\.o:[ \t]*$$/d' \
+		| sort -u >cscope.files
+	cscope -b
+
+flash : flash.hex
+	@$(call SWITCH_PI_TO_SPI)
+	@$(call SET_RESET)
+	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U $@:w:$<
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
+
+eeprom : eeprom.bin
+	@$(call SWITCH_PI_TO_SPI)
+	@$(call SET_RESET)
+	$(AVR_OBJ2HEX) -I binary -O ihex $< eeprom.hex
+	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U $@:w:$<
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
+
+fuse :
+	@$(call SWITCH_PI_TO_SPI)
+	@$(call SET_RESET)
+	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) \
+		-U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
+
+reset :
+	@$(call SET_RESET)
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
+
+clean :
+	@rm -f *~ *.d *.o *.elf *.bin *.hex *.a cscope.* access wavegen
+
+-include $(DEPS)
+
+# Local Variables:
+# mode: makefile
+# End:

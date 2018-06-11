@@ -47,29 +47,26 @@ wave_shape_name(enum wave_shape shape)
 */
 
 static void
-triangle_wave(unsigned bottom, unsigned top, unsigned intervals)
+triangle_wave(FILE *output, unsigned bottom, unsigned top, unsigned intervals)
 {
 	int i = 0;
 	double y = 0;
 	double y_delta;
-	int up = 1;
+	unsigned char *temp;
+	int ti = 0;
+
+	temp = malloc(intervals + 3);
+	temp[ti++] = (unsigned char)(intervals & 0xff);
+	temp[ti++] = (unsigned char)((intervals & 0xff00) >> 8);
+	temp[ti++] = 2;
 
 	y_delta = ((((double)top - (double)bottom) * 2) / (double)intervals);
-	printf("y_delta is %f\n", y_delta);
-	printf("__flash const uint8_t wave[] = {\n\t");
 
 	for (;;) {
-		printf("0x%02x", (bottom + (unsigned)y));
+		temp[ti++] = (unsigned char)(bottom + (unsigned)y);
 
-		if (++i == intervals) {
-			printf("\n};\n");
+		if (++i == intervals)
 			break;
-		}
-
-		if (0 == (i % 8))
-			printf(",\n\t");
-		else
-			printf(", ");
 
 		if (i < (intervals / 2))
 			y += y_delta;
@@ -83,6 +80,8 @@ triangle_wave(unsigned bottom, unsigned top, unsigned intervals)
 			y = (double)top;
 	}
 
+	fwrite(temp, sizeof(unsigned char), ti, output);
+
 	return;
 }
 
@@ -92,29 +91,26 @@ triangle_wave(unsigned bottom, unsigned top, unsigned intervals)
 */
 
 static void
-sawtooth_wave(unsigned bottom, unsigned top, unsigned intervals)
+sawtooth_wave(FILE *output, unsigned bottom, unsigned top, unsigned intervals)
 {
 	int i = 0;
 	double y = 0;
 	double y_delta;
-	int up = 1;
+	unsigned char *temp;
+	int ti = 0;
+
+	temp = malloc(intervals + 3);
+	temp[ti++] = (unsigned char)(intervals & 0xff);
+	temp[ti++] = (unsigned char)((intervals & 0xff00) >> 8);
+	temp[ti++] = 2;
 
 	y_delta = (((double)top - (double)bottom) / (double)intervals);
-	printf("y_delta is %f\n", y_delta);
-	printf("__flash const uint8_t wave[] = {\n\t");
 
 	for (;;) {
-		printf("0x%02x", (bottom + (unsigned)y));
+		temp[ti++] = (unsigned char)(bottom + (unsigned)y);
 
-		if (++i == intervals) {
-			printf("\n};\n");
+		if (++i == intervals)
 			break;
-		}
-
-		if (0 == (i % 8))
-			printf(",\n\t");
-		else
-			printf(", ");
 
 		y += y_delta;
 
@@ -125,6 +121,8 @@ sawtooth_wave(unsigned bottom, unsigned top, unsigned intervals)
 			y = (double)top;
 	}
 
+	fwrite(temp, sizeof(unsigned char), ti, output);
+
 	return;
 }
 
@@ -134,30 +132,30 @@ sawtooth_wave(unsigned bottom, unsigned top, unsigned intervals)
 */
 
 static void
-sine_wave(unsigned bottom, unsigned top, unsigned intervals)
+sine_wave(FILE *output, unsigned bottom, unsigned top, unsigned intervals)
 {
 	int i = 0;
 	double y;
-	int up = 1;
 
-	printf("__flash const uint8_t wave[] = {\n\t");
+	unsigned char *temp;
+	int ti = 0;
+
+	temp = malloc(intervals + 3);
+	temp[ti++] = (unsigned char)(intervals & 0xff);
+	temp[ti++] = (unsigned char)((intervals & 0xff00) >> 8);
+	temp[ti++] = 2;
 
 	for (;;) {
 		y = ((sin(((double)i / (double)intervals) * 2 * M_PI)
 		      + 1.) / 2.) * (double)(top - bottom);
 
-		printf("0x%02x", (bottom + (unsigned)y));
+		temp[ti++] = (unsigned char)(bottom + (unsigned)y);
 
-		if (++i == intervals) {
-			printf("\n};\n");
+		if (++i == intervals)
 			break;
-		}
-
-		if (0 == (i % 8))
-			printf(",\n\t");
-		else
-			printf(", ");
 	}
+
+	fwrite(temp, sizeof(unsigned char), ti, output);
 
 	return;
 }
@@ -170,12 +168,13 @@ sine_wave(unsigned bottom, unsigned top, unsigned intervals)
 static void
 usage(int exit_code)
 {
-	printf("wavegen -h || -l value -h value -i value -w name\n"
+	printf("wavegen -h || -l value -h value -i value -w name -o output\n"
 	       "    -h : Display this wonderful help screen\n"
 	       "    -b : low value [0...255] [default is 0]\n"
 	       "    -t : high value [0...255] [default is 255]\n"
 	       "    -i : number of intervals\n"
-	       "    -w : triangle|sine\n");
+	       "    -w : triangle|sine\n"
+	       "    -o : output file [default is wave.bin\n");
 
 	exit(exit_code);
 }
@@ -191,9 +190,11 @@ int main(int argc, char *argv[])
 	unsigned top = 255;
 	unsigned intervals;
 	enum wave_shape shape = unknown;
+	char output_name[FILENAME_MAX] = "eeprom.bin";
+	FILE *output;
 	int c;
 
-	while (-1 != (c = getopt(argc, argv, "b:t:i:w:h")))
+	while (-1 != (c = getopt(argc, argv, "b:t:i:w:o:h")))
 		switch (c) {
 		case 'h':
 			usage(EXIT_SUCCESS);
@@ -222,29 +223,35 @@ int main(int argc, char *argv[])
 				usage(EXIT_FAILURE);
 			}
 			break;
+		case 'o':
+			strncpy(output_name, optarg, FILENAME_MAX);
+			break;
 		default:
 			usage(EXIT_FAILURE);
 			break;
 		}
 
-	printf("bottom=%u top=%u intervals=%u shape=%s\n",
-	       bottom, top, intervals, wave_shape_name(shape));
+	printf("bottom=%u top=%u intervals=%u shape=%s output=%s\n",
+	       bottom, top, intervals, wave_shape_name(shape), output_name);
+	output = fopen(output_name, "wb");
 
 	switch (shape) {
 	case triangle:
-		triangle_wave(bottom, top, intervals);
+		triangle_wave(output, bottom, top, intervals);
 		break;
 	case sawtooth:
-		sawtooth_wave(bottom, top, intervals);
+		sawtooth_wave(output, bottom, top, intervals);
 		break;
 	case sine:
-		sine_wave(bottom, top, intervals);
+		sine_wave(output, bottom, top, intervals);
 		break;
 	default:
 		fprintf(stderr, "INVALID SHAPE");
 		return EXIT_FAILURE;
 		break;
 	}
+
+	fclose(output);
 
 	return EXIT_SUCCESS;
 }

@@ -1,0 +1,48 @@
+################################################################################
+#
+# make.attiny85
+#
+# Targets for the 85...
+#
+################################################################################
+
+MCU = attiny85
+AVRDUDEMCU = t85
+SPIDEV = /dev/spidev1.0
+
+define SWITCH_PI_TO_SPI
+gpio -g mode 2 in
+gpio -g mode 3 in
+gpio -g mode 19 alt4
+gpio -g mode 20 alt4
+gpio -g mode 21 alt4
+endef
+
+define SWITCH_PI_TO_I2C
+gpio -g mode 2 alt0
+gpio -g mode 3 alt0
+gpio -g mode 19 in
+gpio -g mode 20 in
+gpio -g mode 21 in
+endef
+
+##################
+## Reset Macros ##
+##################
+
+define SET_RESET
+gpio -g mode 22 out
+gpio -g write 22 0
+endef
+
+define CLEAR_RESET
+gpio -g mode 22 out
+gpio -g write 22 1
+gpio -g mode 22 in
+endef
+
+include $(ATTINY)/make.attiny
+
+# Local Variables:
+# mode: makefile
+# End:

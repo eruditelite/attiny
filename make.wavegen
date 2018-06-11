@@ -101,10 +101,13 @@ OBJS =
 
 .PHONY : all cscope install fuse reset clean
 
-all : $(ATTINY)/libattiny.a attiny attiny.hex access
+all : $(ATTINY)/libattiny.a attiny attiny.hex access wavegen
 
 access : access.c
 	gcc -Wall -pthread -DAVRTARGET=$(AVRTARGET) -o $@ $< -lpigpiod_if2 -lrt
+
+wavegen : $(ATTINY)/wavegen.c
+	gcc -Wall -o $@ $< -lm
 
 attiny.hex : attiny
 	$(AVR_OBJ2HEX) -R .eeprom -O ihex $< $@
@@ -134,7 +137,8 @@ DEPS += $(ATTINY)/i2c.d $(ATTINY)/tick.d
 
 ## convinience targets...
 
-cscope : main.c $(ATTINY)/i2c.c $(ATTINY)i2c.h $(ATTINY)/tick.c $(ATTINY)tick.h
+cscope : main.c \
+	$(ATTINY)/i2c.c $(ATTINY)/i2c.h $(ATTINY)/tick.c $(ATTINY)/tick.h
 	$(AVR_CC) $(AVR_CFLAGS) -M $^ \
 		| sed -e 's/[\\ ]/\n/g' \
 		| sed -e '/^$$/d' -e '/\.o:[ \t]*$$/d' \
@@ -145,6 +149,15 @@ install : attiny.hex
 	@$(call SWITCH_PI_TO_SPI)
 	@$(call SET_RESET)
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U flash:w:$<
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
+
+newwave : wave.bin
+	@$(call SWITCH_PI_TO_SPI)
+	@$(call SET_RESET)
+	$(AVR_OBJ2HEX) -I binary -O ihex $< wave.hex
+	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U eeprom:w:wave.hex
+	rm -f wave.hex
 	@$(call CLEAR_RESET)
 	@$(call SWITCH_PI_TO_I2C)
 
@@ -162,6 +175,6 @@ reset :
 	@$(call SWITCH_PI_TO_I2C)
 
 clean :
-	@rm -f *~ *.d *.o *.a *.vcd cscope.* attiny attiny.hex access wavegen
+	@rm -f *~ *.d *.o *.hex *.a *.vcd cscope.* attiny access wavegen
 
 -include $(DEPS)
