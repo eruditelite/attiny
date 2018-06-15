@@ -83,9 +83,9 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 		case 0x05:
 			/* Return dummy4. */
 			ob[obi++] = dummy4 & 0xff;
-			ob[obi++] = (dummy4 & 0xff00) >> 8;
-			ob[obi++] = (dummy4 & 0xff0000) >> 16;
-			ob[obi++] = (dummy4 & 0xff000000) >> 24;
+			ob[obi++] |= (dummy4 & 0xff00) >> 8;
+			ob[obi++] |= (dummy4 & 0xff0000) >> 16;
+			ob[obi++] |= (dummy4 & 0xff000000) >> 24;
 			break;
 		case 0x85:
 			/* Set dummy4. */
