@@ -87,6 +87,14 @@ eeprom : eeprom.bin
 	@$(call CLEAR_RESET)
 	@$(call SWITCH_PI_TO_I2C)
 
+fuse_1M :
+	@$(call SWITCH_PI_TO_SPI)
+	@$(call SET_RESET)
+	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) \
+		-U lfuse:w:0x62:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
+	@$(call CLEAR_RESET)
+	@$(call SWITCH_PI_TO_I2C)
+
 fuse :
 	@$(call SWITCH_PI_TO_SPI)
 	@$(call SET_RESET)
