@@ -1,9 +1,11 @@
 #!/bin/sh
 
-AVRTARGET=84 make -C examples84/blink $@
-AVRTARGET=85 make -C examples85/blink $@
-AVRTARGET=84 make -C examples84/square $@
-AVRTARGET=85 make -C examples85/square $@
-AVRTARGET=85 make -C examples85/wave $@
-AVRTARGET=85 make -C examples85/adc $@
-AVRTARGET=85 make -C examples85/activity $@
+make -C examples84/simple $@
+make -C examples85/simple $@
+make -C examples84/blink $@
+make -C examples85/blink $@
+make -C examples84/square $@
+make -C examples85/square $@
+make -C examples85/wave $@
+make -C examples85/adc $@
+make -C examples85/activity $@

@@ -10,11 +10,7 @@
 #include "tick.h"
 #include "i2c.h"
 
-#if defined(__AVR_ATtiny84__)
-#define I2C_ADDRESS 4
-#elif defined(__AVR_ATtiny85__)
 #define I2C_ADDRESS 5
-#endif
 
 #define MAGIC   0xbacd
 #define PROJECT 0x0002
@@ -72,8 +68,8 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 			break;
 		case 0x04:
 			/* Return dummy2. */
-			ob[obi++] = dummy2 & 0xff;
 			ob[obi++] = (dummy2 & 0xff00) >> 8;
+			ob[obi++] = dummy2 & 0xff;
 			break;
 		case 0x84:
 			/* Set dummy2. */
@@ -82,10 +78,10 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 			break;
 		case 0x05:
 			/* Return dummy4. */
+			ob[obi++] = (dummy4 & 0xff000000) >> 24;
+			ob[obi++] = (dummy4 & 0xff0000) >> 16;
+			ob[obi++] = (dummy4 & 0xff00) >> 8;
 			ob[obi++] = dummy4 & 0xff;
-			ob[obi++] |= (dummy4 & 0xff00) >> 8;
-			ob[obi++] |= (dummy4 & 0xff0000) >> 16;
-			ob[obi++] |= (dummy4 & 0xff000000) >> 24;
 			break;
 		case 0x85:
 			/* Set dummy4. */
@@ -133,11 +129,7 @@ main(void)
 	TCCR0A = _BV(WGM01);
 	TCCR0B = _BV(CS01);
 	OCR0A = 20;
-#if defined(__AVR_ATtiny84__)
-	TIMSK0 = _BV(OCIE0A);
-#elif defined(__AVR_ATtiny85__)
 	TIMSK = _BV(OCIE0A);
-#endif
 
 	/* Then... */
 	for (;;)
