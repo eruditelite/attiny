@@ -11,11 +11,7 @@
 #include "tick.h"
 #include "i2c.h"
 
-#if defined(__AVR_ATtiny84__)
-#define I2C_ADDRESS 4
-#elif defined(__AVR_ATtiny85__)
 #define I2C_ADDRESS 5
-#endif
 
 #define MAGIC   0xbacd
 #define PROJECT 0x0004
@@ -103,7 +99,6 @@ main(void)
 	/* timer0... interrupt to output samples */
 
 	TCCR0A = _BV(WGM00);
-
 	TCCR0B = _BV(WGM02) | _BV(CS00);
 
 	/* pin change interrupt on PB1 for I2C */
