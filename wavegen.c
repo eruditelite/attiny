@@ -173,7 +173,7 @@ usage(int exit_code)
 	       "    -b : low value [0...255] [default is 0]\n"
 	       "    -t : high value [0...255] [default is 255]\n"
 	       "    -i : number of intervals\n"
-	       "    -w : triangle|sine\n"
+	       "    -w : triangle|sawtooth|sine\n"
 	       "    -o : output file [default is wave.bin\n");
 
 	exit(exit_code);
