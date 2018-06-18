@@ -10,11 +10,7 @@
 #include "tick.h"
 #include "i2c.h"
 
-#if defined(__AVR_ATtiny84__)
-#define I2C_ADDRESS 4
-#elif defined(__AVR_ATtiny85__)
-#define I2C_ADDRESS 5
-#endif
+#define I2C_ADDRESS 7
 
 #define MAGIC   0xbacd
 #define PROJECT 0x0003

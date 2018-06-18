@@ -42,7 +42,7 @@ static int verbose = 0;
 
 static int sda = 2;
 static int scl = 3;
-static int i2c_address = 5;
+static int i2c_address = 7;
 
 struct tr {
 	const char *name;
