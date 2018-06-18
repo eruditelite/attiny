@@ -105,11 +105,7 @@ Connect the output pins to the following circuit.
 
 ![LED Circuit](images/led.png)
 
-### ATTiny 84 Square ###
-
-### ATTiny 84 Wave ###
-
-### ATTiny 85 Square ###
+### ATTiny Square ###
 
 Square wave output on PB1.  OCR1A is the "percentage on" (0...255);
 the initial value is 127.  Use a low pass filter to smooth the output.
@@ -117,7 +113,11 @@ Resistor and capacitor values will depend on the load etc.
 
 ![Low Pass](images/lowpassfordc.png)
 
-### ATTiny 85 Wave ###
+And the result is...
+
+![Square Out](images/squareout.bmp)
+
+### ATTiny Wave (Not Implemented on ATTiny84) ###
 
 This example uses timer/counter 1 for PWM output on PB4 and
 timer/counter 0 as a trigger to change the sample.  The samples are
@@ -135,7 +135,6 @@ Use a low pass filter on the output as follows.
 
 ![Low Pass](images/lowpassforwave.png)
 
-### ATTiny 85 ADC ###
+### ATTiny ADC (Not Implemented on ATTiny84) ###
 
-### ATTiny 85 Activity ###
-
+### ATTiny Activity (Not Implemented on ATTiny84) ###
