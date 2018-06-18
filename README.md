@@ -32,19 +32,82 @@ Details are available in makefile.attiny84 and makefile.attiny85.
 Both of those makefiles include macros to switch the Raspberry
 Pi/ATTiny connection to SPI mode or to I2C mode.
 
+In addition to the obvious connections -- 3.3 V and Common -- connect
+as follows.
+
+![I2C and SPI](images/i2candspi.png)
+
+## I2C ##
+
+## Tick ##
+
+Using the "blink" example (see below), the tick can be measured -- just set the rate of the LED to 16 ms.  Measuring the part I used to test attiny resulted in a bit more, 17.8 ms.
+
+![Tick Rate](images/tickrate.bmp)
+
 ## Examples ##
 
-### ATTiny 84 Simple ###
+In the following examples, the I2C address is 7 for no particular
+reason.  The only other consistent difference is the macro for the
+"Timer Interrupt Mask Register".  The ATTiny84 has TIMSK0 and the
+ATTiny85 has TIMSK.
 
-### ATTiny 84 Blink ###
+### ATTiny Simple ###
+
+No external connections, just I2C.  Three "registers" are created, 1, 2, and 4 bytes.  All registers can be read or written using 'access'.  To run, do the following.
+
+1. 'cd example84/simple' OR 'cd example85/simple'.
+2. 'make flash'.
+3. 'make access'.
+
+After the above, access should display the values of the registers, and allow them to be changed.
+
+```text
+[ pi@raspberrypi ] ./access
+Project: 0x0002 Version: 0x0001
+dummys are 0x11 0x2222 0x44444444
+[ pi@raspberrypi ] ./access -1 0x12 -2 0x3456 -4 0x789abcde
+Project: 0x0002 Version: 0x0001
+dummys are 0x12 0x3456 0x789abcde
+[ pi@raspberrypi ] ./access
+Project: 0x0002 Version: 0x0001
+dummys are 0x12 0x3456 0x789abcde
+[ pi@raspberrypi ] ./access -v
+--> Starting pigpio with (localhost, 8888)
+--> Opening pigpio I2C with (, 2, 3, 20000)
+zip: 04 07 02 07 01 00 03 02 06 02 03 00 
+buf: cd ba 
+zip: 04 07 02 07 01 01 03 02 06 02 03 00 
+buf: 02 00 
+zip: 04 07 02 07 01 02 03 02 06 02 03 00 
+buf: 01 00 
+Project: 0x0002 Version: 0x0001
+zip: 04 07 02 07 01 03 03 02 06 01 03 00 
+buf: 12 
+zip: 04 07 02 07 01 04 03 02 06 02 03 00 
+buf: 56 34 
+zip: 04 07 02 07 01 05 03 02 06 04 03 00 
+buf: de bc 9a 78 
+dummys are 0x12 0x3456 0x789abcde
+```
+
+### ATTiny Blink ###
+
+Blink a few LEDs using the "tick" (based on the watchdog timer, see
+tick.h/tick.c).  On the ATTiny 84, the outputs are PB0, PB1, and PB2;
+on the ATTiny84, the outputs are PB1, PB3, and PB4.
+
+'access' provides a way to change the blink rate of each LED.  Since
+this example uses a tick based on the watchdog timer, the rate must be
+a multiple of 16 ms.
+
+Connect the output pins to the following circuit.
+
+![LED Circuit](images/led.png)
 
 ### ATTiny 84 Square ###
 
 ### ATTiny 84 Wave ###
-
-### ATTiny 84 Simple ###
-
-### ATTiny 85 Blink ###
 
 ### ATTiny 85 Square ###
 
