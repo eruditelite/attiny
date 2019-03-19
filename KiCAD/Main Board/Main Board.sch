@@ -26,23 +26,7 @@ F 3 "" H 2450 2700 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 Wire Wire Line
-	2450 2700 2450 2850
-Wire Wire Line
-	2450 2850 2650 2850
-Wire Wire Line
 	2450 2950 2650 2950
-Connection ~ 2450 2850
-$Comp
-L power:GND #PWR02
-U 1 1 580C1D11
-P 2550 4900
-F 0 "#PWR02" H 2550 4650 50  0001 C CNN
-F 1 "GND" H 2550 4750 50  0000 C CNN
-F 2 "" H 2550 4900 50  0000 C CNN
-F 3 "" H 2550 4900 50  0000 C CNN
-	1    2550 4900
-	-1   0    0    -1  
-$EndComp
 $Comp
 L power:GND #PWR03
 U 1 1 580C1E01
@@ -72,8 +56,6 @@ F 3 "" H 3350 2700 50  0000 C CNN
 	1    3350 2700
 	-1   0    0    -1  
 $EndComp
-Wire Wire Line
-	3250 3250 3150 3250
 Wire Wire Line
 	4300 3150 3150 3150
 Wire Wire Line
@@ -156,8 +138,6 @@ Text Label 1600 3350 0    50   ~ 0
 GPIO18(GEN1)(PWM0)
 Text Label 1600 3250 0    50   ~ 0
 GPIO15(RXD0)
-Wire Wire Line
-	2550 3050 2650 3050
 Text Notes 650  7600 0    50   ~ 0
 ID_SD and ID_SC PINS:\nThese pins are reserved for HAT ID EEPROM.\n\nAt boot time this I2C interface will be\ninterrogated to look for an EEPROM\nthat identifes the attached board and\nallows automagic setup of the GPIOs\n(and optionally, Linux drivers).\n\nDO NOT USE these pins for anything other\nthan attaching an I2C ID EEPROM. Leave\nunconnected if ID EEPROM not required.
 $Comp
@@ -219,8 +199,6 @@ F 3 "" H -1900 2800 50  0001 C CNN
 $EndComp
 Text Label 1600 4750 0    50   ~ 0
 GPIO21(SPI1_SCK)
-Wire Wire Line
-	2450 2850 2450 2950
 Wire Wire Line
 	3350 2850 3350 3650
 $Comp
@@ -660,10 +638,6 @@ NoConn ~ 3150 4050
 NoConn ~ 2650 4250
 NoConn ~ 2650 3750
 NoConn ~ 2650 3450
-Wire Wire Line
-	3250 3250 3250 4750
-Wire Wire Line
-	2550 3050 2550 4450
 $Comp
 L power:+3.3V #PWR0101
 U 1 1 5CD4F49E
@@ -715,13 +689,13 @@ Wire Wire Line
 Wire Wire Line
 	10000 3000 11000 3000
 Wire Wire Line
-	2650 4450 2550 4450
-Connection ~ 2550 4450
-Wire Wire Line
-	2550 4450 2550 4900
-Wire Wire Line
 	3150 4750 3250 4750
-Connection ~ 3250 4750
 Wire Wire Line
 	3250 4750 3250 4900
+NoConn ~ 2650 3050
+NoConn ~ 3150 3250
+NoConn ~ 2650 4450
+NoConn ~ 2650 2850
+Wire Wire Line
+	2450 2700 2450 2950
 $EndSCHEMATC
