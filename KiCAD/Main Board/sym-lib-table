@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name ATTiny-Examples-rescue)(type Legacy)(uri "${KIPRJMOD}/ATTiny Examples-rescue.lib")(options "")(descr ""))
+  (lib (name Main-Board-rescue)(type Legacy)(uri "${KIPRJMOD}/Main Board-rescue.lib")(options "")(descr ""))
+)

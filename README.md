@@ -138,3 +138,17 @@ Use a low pass filter on the output as follows.
 ### ATTiny ADC (Not Implemented on ATTiny84) ###
 
 ### ATTiny Activity (Not Implemented on ATTiny84) ###
+
+## About Pin Ordering ##
+
+It seems obvious that pin 1 on the chip should go to pin one on the header... at least until you start routing the board!
+
+2
+3
+5
+6
+13
+12
+11
+10
+8
