@@ -7,7 +7,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#include "tick.h"
 #include "i2c.h"
 
 #define I2C_ADDRESS 7
@@ -15,15 +14,6 @@
 #define MAGIC   0xbacd
 #define PROJECT 0x0004
 #define VERSION 0x0001
-
-/*
-  Check for I2C Messages...
-*/
-
-ISR(TIM0_COMPA_vect)
-{
-	usi_twi_check();
-}
 
 /*
   ------------------------------------------------------------------------------
@@ -117,29 +107,16 @@ main(void)
 	OCR1B = 16384;
 
 	/*
-	  Start the Tick
-	*/
-
-	start_tick(0);
-
-	/*
 	  Start I2C - Use Timer0 to Check for I2C Messages
 	*/
 
 	start_i2c(I2C_ADDRESS, i2c_callback);
 
-	TCCR0A = _BV(WGM01);
-	TCCR0B = _BV(CS01);
-	OCR0A = 20;
-#if defined(__AVR_ATtiny84__)
-	TIMSK0 = _BV(OCIE0A);
-#elif defined(__AVR_ATtiny85__)
-	TIMSK = _BV(OCIE0A);
-#endif
-
-	/* Then... */
+	/*
+	  Then... wait for messages.
+	*/
 	for (;;)
-		;
+		usi_twi_check();
 
 	return 0;
 }
