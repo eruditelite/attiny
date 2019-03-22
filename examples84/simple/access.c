@@ -257,7 +257,7 @@ usage(const char *prog, int exit_code)
 	       "  -1 --dummy1     Set dummy1\n"
 	       "  -2 --dummy2     Set dummy2\n"
 	       "  -4 --dummy4     Set dummy4\n",
-	       i2c_address, speed, scl, sda);
+ 	       scl, sda, i2c_address, speed);
 
 	exit(1);
 }

@@ -13,6 +13,8 @@ sudo apt install gcc-avr avr-libc avrdude
 
 Enable SPI and I2C using 'sudo raspi-config'.
 
+Add 'dtoverlay=spi1-3cs' to /boot/config.txt.
+
 ## Basic Functionality ##
 
 At the top, is a template that works on either the ATTiny84 or
@@ -60,13 +62,16 @@ ATTiny85 has TIMSK.
 
 ### ATTiny Simple ###
 
-No external connections, just I2C.  Three "registers" are created, 1, 2, and 4 bytes.  All registers can be read or written using 'access'.  To run, do the following.
+No external connections, just I2C.  Three "registers" are created, 1,
+2, and 4 bytes.  All registers can be read or written using 'access'.
+To run, do the following.
 
 1. 'cd example84/simple' OR 'cd example85/simple'.
-2. 'make flash'.
+2. 'make reset ; make flash'.
 3. 'make access'.
 
-After the above, access should display the values of the registers, and allow them to be changed.
+After the above, access should display the values of the registers,
+and allow them to be changed.
 
 ```text
 [ pi@raspberrypi ] ./access
@@ -96,6 +101,10 @@ zip: 04 07 02 07 01 05 03 02 06 04 03 00
 buf: de bc 9a 78 
 dummys are 0x12 0x3456 0x789abcde
 ```
+
+To test accesses multiple times add '-t <number>'. Each test will,
+with no other options, simply read the available registers. To write
+as well as read, add some combination of the -1, -2, and -4 options.
 
 ### ATTiny Blink ###
 
