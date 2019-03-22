@@ -7,6 +7,12 @@ wanted a simple example using the Raspberry Pi (the reason for all of
 this is controlling telescopes using lin_guider etc.), I decided to
 write this all down so I could remember it later!
 
+## Requirements ##
+
+sudo apt install gcc-avr avr-libc avrdude
+
+Enable SPI and I2C using 'sudo raspi-config'.
+
 ## Basic Functionality ##
 
 At the top, is a template that works on either the ATTiny84 or
