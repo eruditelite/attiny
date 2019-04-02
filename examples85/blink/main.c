@@ -21,7 +21,7 @@ unsigned long delay[3];
 void
 pb1_handler(void)
 {
-	PORTB ^= _BV(PB3);
+	PORTB ^= _BV(PB1);
 
 	return;
 }
@@ -29,7 +29,7 @@ pb1_handler(void)
 void
 pb3_handler(void)
 {
-	PORTB ^= _BV(PB1);
+	PORTB ^= _BV(PB3);
 
 	return;
 }
