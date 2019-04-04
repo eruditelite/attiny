@@ -8,22 +8,22 @@
 
 MCU = attiny85
 AVRDUDEMCU = t85
-SPIDEV = /dev/spidev1.0
+SPIDEV = /dev/spidev0.1
 
 define SWITCH_PI_TO_SPI
 gpio -g mode 2 in
 gpio -g mode 3 in
-gpio -g mode 19 alt4
-gpio -g mode 20 alt4
-gpio -g mode 21 alt4
+gpio -g mode 9 alt0
+gpio -g mode 10 alt0
+gpio -g mode 11 alt0
 endef
 
 define SWITCH_PI_TO_I2C
 gpio -g mode 2 alt0
 gpio -g mode 3 alt0
-gpio -g mode 19 in
-gpio -g mode 20 in
-gpio -g mode 21 in
+gpio -g mode 9 in
+gpio -g mode 10 in
+gpio -g mode 11 in
 endef
 
 ##################
@@ -31,14 +31,27 @@ endef
 ##################
 
 define SET_RESET
-gpio -g mode 22 out
-gpio -g write 22 0
+gpio -g mode 27 out
+gpio -g write 27 0
 endef
 
 define CLEAR_RESET
-gpio -g mode 22 out
-gpio -g write 22 1
-gpio -g mode 22 in
+gpio -g mode 27 out
+gpio -g write 27 1
+endef
+
+####################################
+## Program (Flash or Fuse) Macros ##
+####################################
+
+define SET_PROGRAM
+gpio -g mode 23 out
+gpio -g write 23 1
+endef
+
+define CLEAR_PROGRAM
+gpio -g mode 23 out
+gpio -g write 23 0
 endef
 
 include $(ATTINY)/make.attiny
