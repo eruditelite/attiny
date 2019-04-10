@@ -19,7 +19,7 @@ AVRDUDE_OPTIONS = -p $(AVRDUDEMCU) -P $(SPIDEV) -c linuxspi -b 8000
 DEPS =
 SRC = main.c $(ATTINY)/i2c.c $(ATTINY)/i2c.h $(ATTINY)/tick.c $(ATTINY)/tick.h
 
-.PHONY : all cscope install fuse reset clean
+.PHONY : all cscope install fuse flash reset clean
 
 all :
 
@@ -73,47 +73,40 @@ cscope : $(SRC)
 	cscope -b
 
 flash : flash.hex
-	@$(call SET_PROGRAM)
 	@$(call SWITCH_PI_TO_SPI)
 	@$(call CLEAR_RESET)
 	@$(call SET_RESET)
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U $@:w:$<
 	@$(call CLEAR_RESET)
 	@$(call SWITCH_PI_TO_I2C)
-	@$(call CLEAR_PROGRAM)
 
 eeprom : eeprom.bin
-	@$(call SET_PROGRAM)
 	@$(call SWITCH_PI_TO_SPI)
 	@$(call SET_RESET)
 	$(AVR_OBJ2HEX) -I binary -O ihex $< eeprom.hex
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) -U $@:w:$<
 	@$(call CLEAR_RESET)
 	@$(call SWITCH_PI_TO_I2C)
-	@$(call CLEAR_PROGRAM)
 
 fuse_1M :
-	@$(call SET_PROGRAM)
 	@$(call SWITCH_PI_TO_SPI)
 	@$(call SET_RESET)
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) \
 		-U lfuse:w:0x62:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
 	@$(call CLEAR_RESET)
 	@$(call SWITCH_PI_TO_I2C)
-	@$(call CLEAR_PROGRAM)
 
 fuse :
-	@$(call SET_PROGRAM)
 	@$(call SWITCH_PI_TO_SPI)
 	@$(call SET_RESET)
 	sudo $(AVRDUDE) $(AVRDUDE_OPTIONS) \
 		-U lfuse:w:0xe2:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
 	@$(call CLEAR_RESET)
 	@$(call SWITCH_PI_TO_I2C)
-	@$(call CLEAR_PROGRAM)
 
 reset :
 	@$(call SET_RESET)
+	@sleep 1
 	@$(call CLEAR_RESET)
 	@$(call SWITCH_PI_TO_I2C)
 

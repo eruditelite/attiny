@@ -40,9 +40,9 @@ static int speed = 20000;
 static int pi = -1;
 static int verbose = 0;
 
-static int sda = 0;
-static int scl = 1;
-static int i2c_address = 7;
+static int sda = 2;
+static int scl = 3;
+static int i2c_address = 4;
 
 struct tr {
 	const char *name;

@@ -10,7 +10,7 @@
 #include "tick.h"
 #include "i2c.h"
 
-#define I2C_ADDRESS 7
+#define I2C_ADDRESS 4
 
 #define MAGIC   0xbacd
 #define PROJECT 0x0002

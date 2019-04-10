@@ -10,21 +10,13 @@
 #include "tick.h"
 #include "i2c.h"
 
-#define I2C_ADDRESS 7
+#define I2C_ADDRESS 5
 
 #define MAGIC   0xbacd
 #define PROJECT 0x0002
 #define VERSION 0x0001
 
 unsigned long delay[3];
-
-void
-pb1_handler(void)
-{
-	PORTB ^= _BV(PB1);
-
-	return;
-}
 
 void
 pb3_handler(void)
@@ -42,7 +34,7 @@ pb4_handler(void)
 	return;
 }
 
-void (*handler[3])(void) = {pb1_handler, pb3_handler, pb4_handler};
+void (*handler[2])(void) = {pb3_handler, pb4_handler};
 
 /*
   Check for I2C Messages...
@@ -87,7 +79,6 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 			break;
 		case 0x03:
 		case 0x04:
-		case 0x05:
 			/* Read delay. */
 			di = (ib[ibi - 1] - 0x03);
 			delay_in_ms = TICKS_TO_MS(delay[di]);
@@ -98,7 +89,6 @@ i2c_callback(uint8_t ibl, const uint8_t *ib, uint8_t *obl, uint8_t *ob)
 			break;
 		case 0x83:
 		case 0x84:
-		case 0x85:
 			/* Set the delay. */
 			di = (ib[ibi - 1] - 0x83);
 			delay_in_ms = ((unsigned long)(ib[ibi++]));
@@ -137,10 +127,10 @@ main(void)
 	*/
 
  	/* Set pins 3 and 4 to output. */
-	DDRB |= (_BV(PB1) | _BV(PB3) | _BV(PB4));
+	DDRB |= (_BV(PB3) | _BV(PB4));
 
 	/* Make both pins low to start. */
-	PORTB |= ~(_BV(PB1) | _BV(PB3) | _BV(PB4));
+	PORTB |= ~(_BV(PB3) | _BV(PB4));
 
 	/*
 	  Add Handlers
@@ -150,8 +140,6 @@ main(void)
 	set_callback(0, 1, delay[0], handler[0]);
 	delay[1] = MS_TO_TICKS(1000);
 	set_callback(1, 1, delay[1], handler[1]);
-	delay[2] = MS_TO_TICKS(1000);
-	set_callback(2, 1, delay[2], handler[2]);
 
 	/*
 	  Start the Tick

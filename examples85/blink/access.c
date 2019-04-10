@@ -42,7 +42,7 @@ static int verbose = 0;
 
 static int sda = 2;
 static int scl = 3;
-static int i2c_address = 7;
+static int i2c_address = 5;
 
 struct tr {
 	const char *name;
@@ -57,7 +57,6 @@ enum trname {
 	trversion = 2,
 	trdelay1 = 3,
 	trdelay2 = 4,
-	trdelay3 = 5
 };
 
 struct tr trs[] = {
@@ -66,7 +65,6 @@ struct tr trs[] = {
 	{"version", trversion, 2, 1},
 	{"delay1", trdelay1, 4, 0},
 	{"delay2", trdelay2, 4, 0},
-	{"delay3", trdelay3, 4, 0}
 };
 
 /*
@@ -256,7 +254,7 @@ usage(const char *prog, int exit_code)
 	       "  -s --speed      I2C clock rate (Hz, default %d)\n"
 	       "  -t --test       Run a test loop for given number of times\n"
 	       "  -v --verbose    Spew extra info...\n",
-	       i2c_address, speed, scl, sda);
+	       scl, sda, i2c_address, speed);
 
 	exit(1);
 }
@@ -280,8 +278,6 @@ main(int argc, char *argv[])
 	int write_delay1 = 0;
 	unsigned long delay2;
 	int write_delay2 = 0;
-	unsigned long delay3;
-	int write_delay3 = 0;
 
 	strcpy(ip_address, "localhost");
 	strcpy(ip_port, "8888");
@@ -297,7 +293,6 @@ main(int argc, char *argv[])
 			{ "datapin",    1, 0, 'd' },
 			{ "delay1",     1, 0, '1' },
 			{ "delay2",     1, 0, '2' },
-			{ "delay3",     1, 0, '3' },
 			{ "help",       1, 0, 'h' },
 			{ "i2caddress", 1, 0, 'p' },
 			{ "port",       1, 0, 'p' },
@@ -332,10 +327,6 @@ main(int argc, char *argv[])
 		case '2':
 			delay2 = strtol(optarg, NULL, 0);
 			write_delay2 = 1;
-			break;
-		case '3':
-			delay3 = strtol(optarg, NULL, 0);
-			write_delay3 = 1;
 			break;
 		case 'h':
 			usage(argv[0], EXIT_SUCCESS);
@@ -442,26 +433,18 @@ main(int argc, char *argv[])
 			    goto exit;
 		}
 
-		if ((0 != write_delay3) &&
-		    (EXIT_SUCCESS != traccess(pi, trdelay3, 0, &delay3))) {
-			    fprintf(stderr, "Write Failed\n");
-			    rc = EXIT_FAILURE;
-			    goto exit;
-		}
-
 		/*
 		  Read Delays
 		*/
 
 		if ((EXIT_SUCCESS != traccess(pi, trdelay1, 1, &delay1)) ||
-		    (EXIT_SUCCESS != traccess(pi, trdelay2, 1, &delay2)) ||
-		    (EXIT_SUCCESS != traccess(pi, trdelay3, 1, &delay3))) {
+		    (EXIT_SUCCESS != traccess(pi, trdelay2, 1, &delay2))) {
 			fprintf(stderr, "Read Failed\n");
 			rc = EXIT_FAILURE;
 			goto exit;
 		}
 
-		printf("Delays are %lu %lu %lu\n", delay1, delay2, delay3);
+		printf("Delays are %lu %lu\n", delay1, delay2);
 	}
 
 	rc = EXIT_SUCCESS;
