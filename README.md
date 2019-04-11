@@ -15,6 +15,41 @@ Enable SPI and I2C using 'sudo raspi-config'.
 
 Add 'dtoverlay=spi1-3cs' to /boot/config.txt.
 
+systemctl enable pigpiod
+
+## avrdude ##
+
+Speed is one problem... The ATTinys work reliably, at least on a breadboard, at lower speeds than the default (SPI1 runs at TODO Hz).
+
+Another problem is pin use, especially on the ATTiny85.
+
+The problem is, that -b doesn't set the speed on SPI1.
+
+./configure --build=arm-linux-gnueabihf --prefix=/usr --includedir=\${prefix}/include --mandir=\${prefix}/share/man --infodir=\${prefix}/share/info --sysconfdir=/etc --localstatedir=/var --disable-silent-rules --libdir=\${prefix}/lib/arm-linux-gnueabihf --libexecdir=\${prefix}/lib/arm-linux-gnueabihf --disable-maintainer-mode --disable-dependency-tracking --enable-versioned-doc=no --enable-doc --enable-linuxgpio
+
+for 84
+
+gpio -g mode 0 in
+gpio -g mode 1 in
+gpio -g mode 9 alt0
+gpio -g mode 10 alt0
+gpio -g mode 11 alt0
+gpio -g mode 22 out
+gpio -g write 22 0
+
+
+sudo avrdude -p t85 -P /dev/spidev0.0 -c linuxspi -b 5000 -U flash:w:flash.hex
+
+gpio -g mode 22 out
+gpio -g write 22 1
+gpio -g mode 22 in
+gpio -g mode 0 alt0
+gpio -g mode 1 alt0
+gpio -g mode 9 in
+gpio -g mode 10 in
+gpio -g mode 11 in
+
+
 ## Basic Functionality ##
 
 At the top, is a template that works on either the ATTiny84 or

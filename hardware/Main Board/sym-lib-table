@@ -1,4 +1,4 @@
 (sym_lib_table
-  (lib (name ATTiny-Examples-rescue)(type Legacy)(uri "${KIPRJMOD}/ATTiny Examples-rescue.lib")(options "")(descr ""))
   (lib (name Main-Board-rescue)(type Legacy)(uri "${KIPRJMOD}/Main Board-rescue.lib")(options "")(descr ""))
+  (lib (name 74hc)(type Legacy)(uri /home/john/Projects/KiCAD/Libraries/local/symbols/74hc.lib)(options "")(descr ""))
 )

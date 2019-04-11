@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name Expansion-Board-Template-rescue)(type Legacy)(uri "${KIPRJMOD}/Expansion Board Template-rescue.lib")(options "")(descr ""))
+)
