@@ -19,7 +19,12 @@ systemctl enable pigpiod
 
 ## avrdude ##
 
-Speed is one problem... The ATTinys work reliably, at least on a breadboard, at lower speeds than the default (SPI1 runs at TODO Hz).
+Speed is one problem... The ATTinys work reliably, at least on a
+breadboard, at lower speeds than the default. avrdude's '-b' option
+changes the speed of SPI0, but SPI1 runs at 50 KHz no matter what the
+value of '-b' is. So, to avoid having to update avrdude, SPI0 must be
+used to program both parts. As the parts don't have a chip select,
+that must be added externally.
 
 Another problem is pin use, especially on the ATTiny85.
 
