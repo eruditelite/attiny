@@ -1,6 +1,6 @@
 EESchema Schematic File Version 4
 LIBS:Main Board-cache
-EELAYER 29 0
+EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -114,7 +114,7 @@ GPIO15(RXD0)
 Text Notes 650  7600 0    50   ~ 0
 ID_SD and ID_SC PINS:\nThese pins are reserved for HAT ID EEPROM.\n\nAt boot time this I2C interface will be\ninterrogated to look for an EEPROM\nthat identifes the attached board and\nallows automagic setup of the GPIOs\n(and optionally, Linux drivers).\n\nDO NOT USE these pins for anything other\nthan attaching an I2C ID EEPROM. Leave\nunconnected if ID EEPROM not required.
 $Comp
-L Main-Board-rescue:Mounting_Hole-Mechanical-ATTiny-Examples-rescue MK1
+L PiMounts:Mounting_Hole-Mechanical MK1
 U 1 1 5834FB2E
 P 3000 7200
 F 0 "MK1" H 3100 7246 50  0000 L CNN
@@ -125,7 +125,7 @@ F 3 "" H 3000 7200 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Main-Board-rescue:Mounting_Hole-Mechanical-ATTiny-Examples-rescue MK3
+L PiMounts:Mounting_Hole-Mechanical MK3
 U 1 1 5834FBEF
 P 3450 7200
 F 0 "MK3" H 3550 7246 50  0000 L CNN
@@ -136,7 +136,7 @@ F 3 "" H 3450 7200 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Main-Board-rescue:Mounting_Hole-Mechanical-ATTiny-Examples-rescue MK2
+L PiMounts:Mounting_Hole-Mechanical MK2
 U 1 1 5834FC19
 P 3000 7400
 F 0 "MK2" H 3100 7446 50  0000 L CNN
@@ -147,7 +147,7 @@ F 3 "" H 3000 7400 60  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Main-Board-rescue:Mounting_Hole-Mechanical-ATTiny-Examples-rescue MK4
+L PiMounts:Mounting_Hole-Mechanical MK4
 U 1 1 5834FC4F
 P 3450 7400
 F 0 "MK4" H 3550 7446 50  0000 L CNN
@@ -434,7 +434,7 @@ Wire Wire Line
 Wire Wire Line
 	5800 3950 5800 4050
 $Comp
-L Main_Board:GND #PWR02
+L Main-Board-rescue:GND-Main_Board-Main-Board-rescue #PWR02
 U 1 1 5CB3ADB4
 P 5800 4050
 F 0 "#PWR02" H 5800 3800 50  0001 C CNN
@@ -445,7 +445,7 @@ F 3 "" H 5800 4050 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Main_Board:+3.3V #PWR07
+L Main-Board-rescue:+3.3V-Main_Board-Main-Board-rescue #PWR07
 U 1 1 5CB3DCF3
 P 6800 2850
 F 0 "#PWR07" H 6800 2700 50  0001 C CNN
@@ -506,7 +506,7 @@ Wire Wire Line
 Wire Wire Line
 	4850 2600 4850 1650
 $Comp
-L Main_Board:+3.3V #PWR0103
+L Main-Board-rescue:+3.3V-Main_Board-Main-Board-rescue #PWR0103
 U 1 1 5CB23E4A
 P 4850 1650
 F 0 "#PWR0103" H 4850 1500 50  0001 C CNN
@@ -533,7 +533,7 @@ Wire Wire Line
 	7250 3050 7250 4000
 Connection ~ 6800 3050
 $Comp
-L Main_Board:GND #PWR016
+L Main-Board-rescue:GND-Main_Board-Main-Board-rescue #PWR016
 U 1 1 5CB26B05
 P 7250 4300
 F 0 "#PWR016" H 7250 4050 50  0001 C CNN
@@ -555,7 +555,7 @@ F 3 "~" H 1050 3100 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Main_Board:GND #PWR015
+L Main-Board-rescue:GND-Main_Board-Main-Board-rescue #PWR015
 U 1 1 5CB30D6E
 P 1050 3250
 F 0 "#PWR015" H 1050 3000 50  0001 C CNN
@@ -566,7 +566,7 @@ F 3 "" H 1050 3250 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Main_Board:+3.3V #PWR014
+L Main-Board-rescue:+3.3V-Main_Board-Main-Board-rescue #PWR014
 U 1 1 5CB31393
 P 1050 2950
 F 0 "#PWR014" H 1050 2800 50  0001 C CNN
@@ -585,7 +585,7 @@ Wire Wire Line
 Wire Wire Line
 	4350 5300 4350 5100
 $Comp
-L Main_Board:+5V #PWR017
+L Main-Board-rescue:+5V-Main_Board-Main-Board-rescue #PWR017
 U 1 1 5CB47F57
 P 4350 5100
 F 0 "#PWR017" H 4350 4950 50  0001 C CNN

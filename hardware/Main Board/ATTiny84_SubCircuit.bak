@@ -1,6 +1,6 @@
 EESchema Schematic File Version 4
 LIBS:Main Board-cache
-EELAYER 29 0
+EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -270,7 +270,7 @@ Connection ~ 6800 2950
 Wire Wire Line
 	6800 2950 6900 2950
 $Comp
-L Main_Board:+3.3V #PWR012
+L Main-Board-rescue:+3.3V-Main_Board-Main-Board-rescue #PWR012
 U 1 1 5CB30ACE
 P 9000 2000
 F 0 "#PWR012" H 9000 1850 50  0001 C CNN

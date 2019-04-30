@@ -15,8 +15,8 @@ S 300 -550 -300 -550 0 1 0 N
 S 300 550 300 -550 0 1 0 N
 X 1~OE 1 -400 450 100 R 50 50 1 1 I
 X 3~OE 10 400 -150 100 L 50 50 1 1 I
+X 4Y 11 400 0 100 L 50 50 1 1 O
 X 4A 12 400 150 100 L 50 50 1 1 I
-X 4Y 12 400 0 100 L 50 50 1 1 O
 X 4~OE 13 400 300 100 L 50 50 1 1 I
 X Vcc 14 400 450 100 L 50 50 1 1 I
 X 1A 2 -400 300 100 R 50 50 1 1 I
@@ -571,30 +571,13 @@ X VCC 8 0 600 100 D 50 50 1 1 W
 ENDDRAW
 ENDDEF
 #
-# Main-Board-rescue_Mounting_Hole-Mechanical-ATTiny-Examples-rescue
+# Main-Board-rescue_+3.3V-Main_Board-Main-Board-rescue
 #
-DEF Main-Board-rescue_Mounting_Hole-Mechanical-ATTiny-Examples-rescue MK 0 40 Y Y 1 F N
-F0 "MK" 0 200 50 H V C CNN
-F1 "Main-Board-rescue_Mounting_Hole-Mechanical-ATTiny-Examples-rescue" 0 125 50 H V C CNN
-F2 "" 0 0 50 H I C CNN
-F3 "" 0 0 50 H I C CNN
-$FPLIST
- Mounting?Hole*
- Hole*
-$ENDFPLIST
-DRAW
-C 0 0 50 0 1 50 N
-ENDDRAW
-ENDDEF
-#
-# Main_Board_+3.3V
-#
-DEF Main_Board_+3.3V #PWR 0 0 Y Y 1 F P
+DEF Main-Board-rescue_+3.3V-Main_Board-Main-Board-rescue #PWR 0 0 Y Y 1 F P
 F0 "#PWR" 0 -150 50 H I C CNN
-F1 "Main_Board_+3.3V" 0 140 50 H V C CNN
+F1 "Main-Board-rescue_+3.3V-Main_Board-Main-Board-rescue" 0 140 50 H V C CNN
 F2 "" 0 0 50 H V C CNN
 F3 "" 0 0 50 H V C CNN
-ALIAS +3.3V
 DRAW
 P 2 0 1 0 -30 50 0 100 N
 P 2 0 1 0 0 0 0 100 N
@@ -603,11 +586,11 @@ X +3V3 1 0 0 0 U 50 50 1 1 W N
 ENDDRAW
 ENDDEF
 #
-# Main_Board_+5V
+# Main-Board-rescue_+5V-Main_Board-Main-Board-rescue
 #
-DEF Main_Board_+5V #PWR 0 0 Y Y 1 F P
+DEF Main-Board-rescue_+5V-Main_Board-Main-Board-rescue #PWR 0 0 Y Y 1 F P
 F0 "#PWR" 0 -150 50 H I C CNN
-F1 "Main_Board_+5V" 0 140 50 H V C CNN
+F1 "Main-Board-rescue_+5V-Main_Board-Main-Board-rescue" 0 140 50 H V C CNN
 F2 "" 0 0 50 H V C CNN
 F3 "" 0 0 50 H V C CNN
 DRAW
@@ -618,16 +601,32 @@ X +5V 1 0 0 0 U 50 50 1 1 W N
 ENDDRAW
 ENDDEF
 #
-# Main_Board_GND
+# Main-Board-rescue_GND-Main_Board-Main-Board-rescue
 #
-DEF Main_Board_GND #PWR 0 0 Y Y 1 F P
+DEF Main-Board-rescue_GND-Main_Board-Main-Board-rescue #PWR 0 0 Y Y 1 F P
 F0 "#PWR" 0 -250 50 H I C CNN
-F1 "Main_Board_GND" 0 -150 50 H V C CNN
+F1 "Main-Board-rescue_GND-Main_Board-Main-Board-rescue" 0 -150 50 H V C CNN
 F2 "" 0 0 50 H V C CNN
 F3 "" 0 0 50 H V C CNN
 DRAW
 P 6 0 1 0 0 0 0 -50 50 -50 0 -100 -50 -50 0 -50 N
 X GND 1 0 0 0 D 50 50 1 1 W N
+ENDDRAW
+ENDDEF
+#
+# PiMounts_Mounting_Hole-Mechanical
+#
+DEF PiMounts_Mounting_Hole-Mechanical MK 0 40 Y Y 1 F N
+F0 "MK" 0 200 50 H V C CNN
+F1 "PiMounts_Mounting_Hole-Mechanical" 0 125 50 H V C CNN
+F2 "" 0 0 50 H I C CNN
+F3 "" 0 0 50 H I C CNN
+$FPLIST
+ Mounting?Hole*
+ Hole*
+$ENDFPLIST
+DRAW
+C 0 0 50 0 1 50 N
 ENDDRAW
 ENDDEF
 #
@@ -663,6 +662,7 @@ F0 "#PWR" 0 -150 50 H I C CNN
 F1 "power_+3.3V" 0 140 50 H V C CNN
 F2 "" 0 0 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
+ALIAS +3.3V
 DRAW
 P 2 0 1 0 -30 50 0 100 N
 P 2 0 1 0 0 0 0 100 N
